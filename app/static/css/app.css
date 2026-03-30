@@ -1,0 +1,64 @@
+/* ── Layout ── */
+body {
+  background-color: #f8f9fa;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+main.container {
+  max-width: 960px;
+}
+
+/* ── Season cards ── */
+.season-card {
+  border-left: 4px solid #0d6efd;
+  transition: box-shadow 0.15s;
+}
+
+.season-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.season-card.archived {
+  border-left-color: #adb5bd;
+  opacity: 0.8;
+}
+
+/* ── Schedule table ── */
+.round-card .card-header {
+  background-color: #212529;
+  color: #fff;
+}
+
+.round-card .table td {
+  vertical-align: middle;
+}
+
+.team-home {
+  font-weight: 600;
+}
+
+.bye-row td {
+  color: #6c757d;
+  font-style: italic;
+  background-color: #f8f9fa;
+}
+
+/* ── Admin tabs ── */
+.tab-content {
+  padding-top: 1.25rem;
+}
+
+/* ── Utility ── */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+}

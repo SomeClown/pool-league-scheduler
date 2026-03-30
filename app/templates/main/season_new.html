@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block title %}New Season — Pool League{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h2 class="mb-4">Create New Season</h2>
+
+    <form method="POST" novalidate>
+
+      <!-- Season name -->
+      <div class="mb-3">
+        <label for="name" class="form-label fw-semibold">Season Name</label>
+        <input type="text" id="name" name="name" class="form-control"
+               placeholder="e.g. Spring 2026" required>
+      </div>
+
+      <!-- Start date + frequency -->
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label for="start_date" class="form-label fw-semibold">Start Date</label>
+          <input type="date" id="start_date" name="start_date" class="form-control" required>
+        </div>
+        <div class="col-sm-6">
+          <label for="frequency" class="form-label fw-semibold">Frequency</label>
+          <select id="frequency" name="frequency" class="form-select">
+            <option value="weekly">Weekly</option>
+            <option value="biweekly">Bi-Weekly</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Team selection -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold">
+          Teams
+          <span class="text-muted fw-normal small" id="team-count-label"></span>
+        </label>
+        {% if bars %}
+        <div class="row g-2">
+          {% for bar in bars %}
+          {% if bar.teams %}
+          <div class="col-sm-6">
+            <div class="card h-100">
+              <div class="card-header py-2 fw-semibold small">
+                {{ bar.name }}
+                <span class="text-muted fw-normal">
+                  — {{ bar.tables }} table{{ 's' if bar.tables != 1 }}
+                </span>
+              </div>
+              <div class="card-body py-2">
+                {% for team in bar.teams %}
+                <div class="form-check">
+                  <input class="form-check-input team-checkbox" type="checkbox"
+                         name="team_ids" value="{{ team.id }}"
+                         id="team_{{ team.id }}" checked>
+                  <label class="form-check-label" for="team_{{ team.id }}">
+                    {{ team.name }}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+          No bars or teams have been set up yet.
+          <a href="{{ url_for('main.admin') }}">Go to Admin</a> to add them first.
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Blackout dates -->
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Blackout Dates</label>
+        <div class="text-muted small mb-2">Dates on which no matches will be scheduled.</div>
+        <div id="blackout-container">
+          <div class="input-group mb-2 blackout-row">
+            <input type="date" name="blackout_date" class="form-control">
+            <button type="button" class="btn btn-outline-danger remove-blackout">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="add-blackout">
+          <i class="bi bi-plus-lg me-1"></i>Add Blackout Date
+        </button>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-calendar-check me-1"></i>Generate Schedule
+        </button>
+        <a href="{{ url_for('main.seasons') }}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Dynamic blackout date rows
+  document.getElementById('add-blackout').addEventListener('click', function () {
+    const container = document.getElementById('blackout-container');
+    const row = document.createElement('div');
+    row.className = 'input-group mb-2 blackout-row';
+    row.innerHTML = `
+      <input type="date" name="blackout_date" class="form-control">
+      <button type="button" class="btn btn-outline-danger remove-blackout">
+        <i class="bi bi-x-lg"></i>
+      </button>`;
+    container.appendChild(row);
+  });
+
+  document.getElementById('blackout-container').addEventListener('click', function (e) {
+    const btn = e.target.closest('.remove-blackout');
+    if (btn) btn.closest('.blackout-row').remove();
+  });
+
+  // Live team count label
+  function updateTeamCount() {
+    const n = document.querySelectorAll('.team-checkbox:checked').length;
+    const label = document.getElementById('team-count-label');
+    if (!label) return;
+    if (n === 0) {
+      label.textContent = '— none selected';
+    } else {
+      const rounds = n % 2 === 0 ? n - 1 : n;
+      label.textContent = `— ${n} selected, ${rounds} round${rounds !== 1 ? 's' : ''}`;
+    }
+  }
+
+  document.querySelectorAll('.team-checkbox').forEach(function (cb) {
+    cb.addEventListener('change', updateTeamCount);
+  });
+  updateTeamCount();
+</script>
+{% endblock %}

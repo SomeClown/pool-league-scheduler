@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ season.name }} — Schedule</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/print.css') }}">
+</head>
+<body>
+
+  <div class="print-header">
+    <h1>{{ season.name }}</h1>
+    <p class="subtitle">
+      Pool League Schedule &mdash;
+      {{ season.start_date.strftime('%B %Y') }}
+      &mdash; {{ season.frequency | title }}
+    </p>
+  </div>
+
+  {% for round_num, round_data in rounds.items() %}
+  <div class="round-block">
+    <div class="round-header">
+      <span class="round-label">Week {{ round_num }}</span>
+      <span class="round-date">{{ round_data.date.strftime('%A, %B %-d, %Y') }}</span>
+    </div>
+    <table class="schedule-table">
+      <tbody>
+        {% for match in round_data.matches %}
+        <tr>
+          <td class="team home">{{ match.home_team.name }}</td>
+          <td class="vs">vs.</td>
+          <td class="team away">{{ match.away_team.name }}</td>
+          <td class="venue">@ {{ match.bar.name }}</td>
+        </tr>
+        {% endfor %}
+        {% if round_data.bye %}
+        <tr class="bye-row">
+          <td colspan="4">Bye: {{ round_data.bye.team.name }}</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+
+  <div class="print-footer">
+    {{ season.teams | length }} teams &bull;
+    {{ rounds | length }} rounds &bull;
+    Generated {{ now.strftime('%B %-d, %Y') if now else '' }}
+  </div>
+
+  <script>window.addEventListener('load', function () { window.print(); });</script>
+</body>
+</html>

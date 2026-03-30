@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Seasons — Pool League{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0">Seasons</h2>
+  {% if current_user.is_admin %}
+  <a href="{{ url_for('main.season_new') }}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>New Season
+  </a>
+  {% endif %}
+</div>
+
+{% if active_seasons %}
+<h5 class="text-uppercase text-muted small fw-semibold mb-2">Active</h5>
+<div class="row g-3 mb-4">
+  {% for season in active_seasons %}
+  <div class="col-md-6">
+    <a href="{{ url_for('main.season_detail', season_id=season.id) }}"
+       class="text-decoration-none">
+      <div class="card season-card h-100">
+        <div class="card-body">
+          <h5 class="card-title mb-1">{{ season.name }}</h5>
+          <p class="card-text text-muted small mb-2">
+            <i class="bi bi-calendar3 me-1"></i>
+            Starts {{ season.start_date.strftime('%B %-d, %Y') }} &mdash;
+            {{ season.frequency | title }}
+          </p>
+          <p class="card-text text-muted small">
+            <i class="bi bi-people me-1"></i>{{ season.teams | length }} teams
+            &nbsp;
+            <i class="bi bi-hash me-1"></i>{{ season.matches | groupby('round_num') | list | length }} rounds scheduled
+          </p>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if archived_seasons %}
+<h5 class="text-uppercase text-muted small fw-semibold mb-2">Archived</h5>
+<div class="row g-3">
+  {% for season in archived_seasons %}
+  <div class="col-md-6">
+    <a href="{{ url_for('main.season_detail', season_id=season.id) }}"
+       class="text-decoration-none">
+      <div class="card season-card archived h-100">
+        <div class="card-body">
+          <h5 class="card-title mb-1 text-muted">{{ season.name }}</h5>
+          <p class="card-text text-muted small mb-2">
+            <i class="bi bi-calendar3 me-1"></i>
+            Started {{ season.start_date.strftime('%B %-d, %Y') }}
+          </p>
+          <p class="card-text text-muted small">
+            <i class="bi bi-people me-1"></i>{{ season.teams | length }} teams
+          </p>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not active_seasons and not archived_seasons %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-calendar-x fs-1 d-block mb-3"></i>
+  No seasons yet.
+  {% if current_user.is_admin %}
+  <a href="{{ url_for('main.season_new') }}">Create the first one.</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
