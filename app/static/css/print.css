@@ -120,10 +120,14 @@ body {
   text-align: center;
 }
 
-/* ── Page breaks ── */
+/* ── Page breaks & print-only hiding ── */
 @media print {
   .round-block {
     page-break-inside: avoid;
+  }
+
+  .no-print {
+    display: none !important;
   }
 
   @page {

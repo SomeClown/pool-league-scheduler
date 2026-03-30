@@ -49,6 +49,22 @@
     Generated {{ now.strftime('%B %-d, %Y') if now else '' }}
   </div>
 
-  <script>window.addEventListener('load', function () { window.print(); });</script>
+  <!-- Print button — visible on screen, hidden when actually printing -->
+  <div class="no-print" style="text-align:center; margin-top: 1.5rem;">
+    <button onclick="window.print()"
+            style="padding: 0.5rem 1.5rem; font-size: 1rem; cursor: pointer;">
+      Print Schedule
+    </button>
+    <span style="margin-left: 1rem; font-size: 0.85rem; color: #666;">
+      or use your browser's print menu
+    </span>
+  </div>
+
+  <script>
+    // Only auto-trigger print on desktop; on mobile let the user tap the button
+    if (window.innerWidth >= 768) {
+      window.addEventListener('load', function () { window.print(); });
+    }
+  </script>
 </body>
 </html>

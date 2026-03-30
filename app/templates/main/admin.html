@@ -37,41 +37,43 @@
     </div>
 
     {% if bars %}
-    <table class="table table-sm table-hover align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>Name</th>
-          <th>Tables</th>
-          <th>Teams</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for bar in bars %}
-        <tr>
-          <td class="fw-semibold">{{ bar.name }}</td>
-          <td>{{ bar.tables }}</td>
-          <td class="text-muted small">
-            {{ bar.teams | map(attribute='name') | join(', ') or '—' }}
-          </td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-secondary me-1"
-                    data-bs-toggle="modal" data-bs-target="#editBarModal"
-                    data-id="{{ bar.id }}"
-                    data-name="{{ bar.name }}"
-                    data-tables="{{ bar.tables }}">
-              Edit
-            </button>
-            <form method="POST" action="{{ url_for('main.bar_delete', bar_id=bar.id) }}"
-                  class="d-inline"
-                  onsubmit="return confirm('Delete {{ bar.name }}?')">
-              <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th>Tables</th>
+            <th class="d-none d-md-table-cell">Teams</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bar in bars %}
+          <tr>
+            <td class="fw-semibold">{{ bar.name }}</td>
+            <td>{{ bar.tables }}</td>
+            <td class="text-muted small d-none d-md-table-cell">
+              {{ bar.teams | map(attribute='name') | join(', ') or '—' }}
+            </td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-secondary me-1"
+                      data-bs-toggle="modal" data-bs-target="#editBarModal"
+                      data-id="{{ bar.id }}"
+                      data-name="{{ bar.name }}"
+                      data-tables="{{ bar.tables }}">
+                Edit
+              </button>
+              <form method="POST" action="{{ url_for('main.bar_delete', bar_id=bar.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Delete {{ bar.name }}?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% else %}
     <p class="text-muted">No bars added yet.</p>
     {% endif %}
@@ -87,37 +89,42 @@
     </div>
 
     {% if teams %}
-    <table class="table table-sm table-hover align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>Name</th>
-          <th>Home Bar</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for team in teams %}
-        <tr>
-          <td class="fw-semibold">{{ team.name }}</td>
-          <td class="text-muted">{{ team.bar.name }}</td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-secondary me-1"
-                    data-bs-toggle="modal" data-bs-target="#editTeamModal"
-                    data-id="{{ team.id }}"
-                    data-name="{{ team.name }}"
-                    data-bar-id="{{ team.bar_id }}">
-              Edit
-            </button>
-            <form method="POST" action="{{ url_for('main.team_delete', team_id=team.id) }}"
-                  class="d-inline"
-                  onsubmit="return confirm('Delete {{ team.name }}?')">
-              <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th class="d-none d-sm-table-cell">Home Bar</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for team in teams %}
+          <tr>
+            <td class="fw-semibold">
+              {{ team.name }}
+              <div class="d-sm-none text-muted small">{{ team.bar.name }}</div>
+            </td>
+            <td class="text-muted d-none d-sm-table-cell">{{ team.bar.name }}</td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-secondary me-1"
+                      data-bs-toggle="modal" data-bs-target="#editTeamModal"
+                      data-id="{{ team.id }}"
+                      data-name="{{ team.name }}"
+                      data-bar-id="{{ team.bar_id }}">
+                Edit
+              </button>
+              <form method="POST" action="{{ url_for('main.team_delete', team_id=team.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Delete {{ team.name }}?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% else %}
     <p class="text-muted">No teams added yet.</p>
     {% endif %}
@@ -133,48 +140,55 @@
     </div>
 
     {% if users %}
-    <table class="table table-sm table-hover align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>Username</th>
-          <th>Role</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for user in users %}
-        <tr>
-          <td class="fw-semibold">
-            {{ user.username }}
-            {% if user.id == current_user.id %}
-            <span class="badge bg-primary ms-1 small">you</span>
-            {% endif %}
-          </td>
-          <td>
-            <span class="badge bg-{{ 'warning text-dark' if user.role == 'admin' else 'secondary' }}">
-              {{ user.role | title }}
-            </span>
-          </td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-secondary me-1"
-                    data-bs-toggle="modal" data-bs-target="#editUserModal"
-                    data-id="{{ user.id }}"
-                    data-username="{{ user.username }}"
-                    data-role="{{ user.role }}">
-              Edit
-            </button>
-            {% if user.id != current_user.id %}
-            <form method="POST" action="{{ url_for('main.user_delete', user_id=user.id) }}"
-                  class="d-inline"
-                  onsubmit="return confirm('Delete user {{ user.username }}?')">
-              <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-            </form>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Username</th>
+            <th class="d-none d-sm-table-cell">Role</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td class="fw-semibold">
+              {{ user.username }}
+              {% if user.id == current_user.id %}
+              <span class="badge bg-primary ms-1 small">you</span>
+              {% endif %}
+              <div class="d-sm-none mt-1">
+                <span class="badge bg-{{ 'warning text-dark' if user.role == 'admin' else 'secondary' }}">
+                  {{ user.role | title }}
+                </span>
+              </div>
+            </td>
+            <td class="d-none d-sm-table-cell">
+              <span class="badge bg-{{ 'warning text-dark' if user.role == 'admin' else 'secondary' }}">
+                {{ user.role | title }}
+              </span>
+            </td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-secondary me-1"
+                      data-bs-toggle="modal" data-bs-target="#editUserModal"
+                      data-id="{{ user.id }}"
+                      data-username="{{ user.username }}"
+                      data-role="{{ user.role }}">
+                Edit
+              </button>
+              {% if user.id != current_user.id %}
+              <form method="POST" action="{{ url_for('main.user_delete', user_id=user.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Delete user {{ user.username }}?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% else %}
     <p class="text-muted">No users found.</p>
     {% endif %}

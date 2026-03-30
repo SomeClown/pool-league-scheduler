@@ -48,33 +48,42 @@
     <span class="small">{{ round_data.date.strftime('%A, %B %-d, %Y') }}</span>
   </div>
   <div class="card-body p-0">
-    <table class="table table-sm table-hover mb-0">
-      <thead class="table-light">
-        <tr>
-          <th class="ps-3">Home</th>
-          <th class="text-center" style="width:4rem"></th>
-          <th>Away</th>
-          <th class="text-end pe-3">Bar</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for match in round_data.matches %}
-        <tr>
-          <td class="ps-3 team-home">{{ match.home_team.name }}</td>
-          <td class="text-center text-muted">vs.</td>
-          <td>{{ match.away_team.name }}</td>
-          <td class="text-end pe-3 text-muted small">{{ match.bar.name }}</td>
-        </tr>
-        {% endfor %}
-        {% if round_data.bye %}
-        <tr class="bye-row">
-          <td colspan="4" class="ps-3">
-            <i class="bi bi-pause-circle me-1"></i>Bye week: {{ round_data.bye.team.name }}
-          </td>
-        </tr>
-        {% endif %}
-      </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Home</th>
+            <th class="text-center d-none d-sm-table-cell" style="width:4rem"></th>
+            <th class="d-none d-sm-table-cell">Away</th>
+            <th class="text-end pe-3 d-none d-md-table-cell">Bar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for match in round_data.matches %}
+          <tr>
+            <td class="ps-3">
+              <span class="team-home">{{ match.home_team.name }}</span>
+              {# On xs screens, stack away team and bar below home team #}
+              <div class="d-sm-none text-muted small mt-1">
+                vs. {{ match.away_team.name }}
+                <span class="ms-2 fst-italic">@ {{ match.bar.name }}</span>
+              </div>
+            </td>
+            <td class="text-center text-muted d-none d-sm-table-cell">vs.</td>
+            <td class="d-none d-sm-table-cell">{{ match.away_team.name }}</td>
+            <td class="text-end pe-3 text-muted small d-none d-md-table-cell">{{ match.bar.name }}</td>
+          </tr>
+          {% endfor %}
+          {% if round_data.bye %}
+          <tr class="bye-row">
+            <td colspan="4" class="ps-3">
+              <i class="bi bi-pause-circle me-1"></i>Bye week: {{ round_data.bye.team.name }}
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 {% endfor %}
