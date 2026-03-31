@@ -100,6 +100,19 @@
                 </div>
                 {% endfor %}
               </div>
+              {% if bar.tables > 1 %}
+              <div class="card-footer py-2 bg-transparent border-top">
+                <label class="form-label small mb-1 text-muted">
+                  Tables in use this season
+                </label>
+                <input type="number"
+                       name="bar_tables_{{ bar.id }}"
+                       class="form-control form-control-sm"
+                       value="{{ bar.tables }}"
+                       min="1"
+                       max="{{ bar.tables }}">
+              </div>
+              {% endif %}
             </div>
           </div>
           {% endif %}

@@ -74,6 +74,9 @@ class Season(db.Model):
     blackout_dates = db.relationship(
         'BlackoutDate', backref='season', lazy=True, cascade='all, delete-orphan'
     )
+    bar_caps = db.relationship(
+        'SeasonBarCap', backref='season', lazy=True, cascade='all, delete-orphan'
+    )
     matches = db.relationship(
         'Match', backref='season', lazy=True, cascade='all, delete-orphan'
     )
@@ -83,6 +86,17 @@ class Season(db.Model):
 
     def __repr__(self):
         return f'<Season {self.name}>'
+
+
+class SeasonBarCap(db.Model):
+    """Overrides a bar's table count for a specific season."""
+    __tablename__ = 'season_bar_caps'
+    id = db.Column(db.Integer, primary_key=True)
+    season_id = db.Column(db.Integer, db.ForeignKey('seasons.id'), nullable=False)
+    bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=False)
+    tables_used = db.Column(db.Integer, nullable=False)
+
+    bar = db.relationship('Bar')
 
 
 class BlackoutDate(db.Model):

@@ -6,7 +6,7 @@ from flask_login import login_required, current_user
 
 from app import db
 from app.main import bp
-from app.models import Bar, Bye, Match, Season, Team, User
+from app.models import Bar, Bye, Match, Season, SeasonBarCap, Team, User
 from app.scheduler.algorithm import generate_schedule
 
 
@@ -183,6 +183,15 @@ def season_new():
 
         bar_ids = {t.bar_id for t in selected_teams}
         bars_in_season = Bar.query.filter(Bar.id.in_(bar_ids)).all()
+
+        # Per-season table caps — only save for bars that are actually in the season
+        for bar in bars_in_season:
+            submitted = request.form.get(f'bar_tables_{bar.id}', type=int)
+            if submitted is not None:
+                tables_used = max(1, min(submitted, bar.tables))
+            else:
+                tables_used = bar.tables
+            season.bar_caps.append(SeasonBarCap(bar_id=bar.id, tables_used=tables_used))
 
         schedule = generate_schedule(season, selected_teams, bars_in_season, num_rounds=num_rounds)
         _persist_schedule(schedule, season)
