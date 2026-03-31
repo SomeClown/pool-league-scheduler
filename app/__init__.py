@@ -48,3 +48,20 @@ def _register_cli(app):
             db.session.add(user)
             db.session.commit()
             click.echo(f'Admin user "{username}" created successfully.')
+
+    @app.cli.command('db-migrate')
+    def db_migrate():
+        """Add new columns to existing database tables without losing data."""
+        from sqlalchemy import text
+        migrations = [
+            ("seasons", "end_date", "ALTER TABLE seasons ADD COLUMN end_date DATE"),
+        ]
+        with app.app_context():
+            with db.engine.connect() as conn:
+                for table, column, sql in migrations:
+                    try:
+                        conn.execute(text(sql))
+                        conn.commit()
+                        click.echo(f'Added column "{column}" to "{table}".')
+                    except Exception:
+                        click.echo(f'Column "{column}" in "{table}" already exists — skipping.')

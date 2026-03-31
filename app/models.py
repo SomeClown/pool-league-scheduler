@@ -65,6 +65,7 @@ class Season(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=True)
     frequency = db.Column(db.String(20), nullable=False, default='weekly')
     status = db.Column(db.String(20), nullable=False, default='active')  # 'active' | 'archived'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

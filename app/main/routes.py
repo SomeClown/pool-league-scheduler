@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import render_template, redirect, url_for, flash, request, abort
@@ -13,6 +13,19 @@ from app.scheduler.algorithm import generate_schedule
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _count_rounds(start_date, end_date, frequency, blackout_set):
+    """Count how many match nights fall between start and end (inclusive),
+    stepping by frequency and skipping blackout dates."""
+    delta = timedelta(weeks=2) if frequency == 'biweekly' else timedelta(weeks=1)
+    current = start_date
+    count = 0
+    while current <= end_date:
+        if current not in blackout_set:
+            count += 1
+        current += delta
+    return count
+
 
 def admin_required(f):
     @wraps(f)
@@ -92,6 +105,9 @@ def season_new():
         name = request.form.get('name', '').strip()
         start_date_str = request.form.get('start_date', '').strip()
         frequency = request.form.get('frequency', 'weekly')
+        length_mode = request.form.get('length_mode', 'end_date')
+        end_date_str = request.form.get('end_date', '').strip()
+        num_weeks_str = request.form.get('num_weeks', '').strip()
         team_ids = request.form.getlist('team_ids')
         blackout_strs = request.form.getlist('blackout_date')
 
@@ -110,24 +126,57 @@ def season_new():
             except ValueError:
                 errors.append('Invalid start date.')
 
+        # Resolve end_date from either the date picker or the weeks field
+        end_date = None
+        freq_delta = timedelta(weeks=2) if frequency == 'biweekly' else timedelta(weeks=1)
+        if start_date:
+            if length_mode == 'end_date' and end_date_str:
+                try:
+                    end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                    if end_date < start_date:
+                        errors.append('End date must be on or after the start date.')
+                except ValueError:
+                    errors.append('Invalid end date.')
+            elif length_mode == 'num_weeks' and num_weeks_str:
+                try:
+                    num_weeks = int(num_weeks_str)
+                    if num_weeks < 1:
+                        errors.append('Number of weeks must be at least 1.')
+                    else:
+                        end_date = start_date + (num_weeks - 1) * freq_delta
+                except ValueError:
+                    errors.append('Number of weeks must be a whole number.')
+            else:
+                errors.append('Please provide an end date or number of weeks.')
+
         if errors:
             for e in errors:
                 flash(e, 'danger')
             return render_template('main/season_new.html', bars=bars, teams=teams)
 
-        season = Season(name=name, start_date=start_date, frequency=frequency)
-        selected_teams = Team.query.filter(Team.id.in_([int(i) for i in team_ids])).all()
-        season.teams = selected_teams
-
+        # Parse blackout dates (needed before calculating num_rounds)
+        from app.models import BlackoutDate
+        blackout_set = set()
+        parsed_blackouts = []
         for ds in blackout_strs:
             ds = ds.strip()
             if ds:
                 try:
-                    from app.models import BlackoutDate
                     bd_date = datetime.strptime(ds, '%Y-%m-%d').date()
-                    season.blackout_dates.append(BlackoutDate(date=bd_date))
+                    blackout_set.add(bd_date)
+                    parsed_blackouts.append(BlackoutDate(date=bd_date))
                 except ValueError:
                     pass
+
+        num_rounds = _count_rounds(start_date, end_date, frequency, blackout_set)
+        if num_rounds < 1:
+            flash('No match nights fall within that date range. Check your dates and blackouts.', 'danger')
+            return render_template('main/season_new.html', bars=bars, teams=teams)
+
+        season = Season(name=name, start_date=start_date, end_date=end_date, frequency=frequency)
+        selected_teams = Team.query.filter(Team.id.in_([int(i) for i in team_ids])).all()
+        season.teams = selected_teams
+        season.blackout_dates.extend(parsed_blackouts)
 
         db.session.add(season)
         db.session.flush()  # assign season.id before generating schedule
@@ -135,7 +184,7 @@ def season_new():
         bar_ids = {t.bar_id for t in selected_teams}
         bars_in_season = Bar.query.filter(Bar.id.in_(bar_ids)).all()
 
-        schedule = generate_schedule(season, selected_teams, bars_in_season)
+        schedule = generate_schedule(season, selected_teams, bars_in_season, num_rounds=num_rounds)
         _persist_schedule(schedule, season)
 
         db.session.commit()
@@ -179,7 +228,12 @@ def season_regenerate(season_id):
     bar_ids = {t.bar_id for t in season.teams}
     bars_in_season = Bar.query.filter(Bar.id.in_(bar_ids)).all()
 
-    schedule = generate_schedule(season, season.teams, bars_in_season)
+    num_rounds = None
+    if season.end_date:
+        blackout_set = {bd.date for bd in season.blackout_dates}
+        num_rounds = _count_rounds(season.start_date, season.end_date, season.frequency, blackout_set)
+
+    schedule = generate_schedule(season, season.teams, bars_in_season, num_rounds=num_rounds)
     _persist_schedule(schedule, season)
 
     db.session.commit()

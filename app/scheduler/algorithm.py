@@ -16,15 +16,18 @@ from datetime import timedelta
 # Public entry point
 # ---------------------------------------------------------------------------
 
-def generate_schedule(season, teams, bars):
+def generate_schedule(season, teams, bars, num_rounds=None):
     """
     Build and return a complete schedule for *season*.
 
     Args:
-        season  : Season model instance (needs .start_date, .frequency,
-                  .blackout_dates)
-        teams   : list of Team model instances participating this season
-        bars    : list of Bar model instances whose teams are in the season
+        season     : Season model instance (needs .start_date, .frequency,
+                     .blackout_dates)
+        teams      : list of Team model instances participating this season
+        bars       : list of Bar model instances whose teams are in the season
+        num_rounds : exact number of rounds to generate.  If None, one full
+                     round-robin cycle is used.  If larger than one cycle,
+                     additional cycles are appended (re-shuffled for variety).
 
     Returns:
         list of dicts:
@@ -36,16 +39,27 @@ def generate_schedule(season, teams, bars):
             }
     """
     team_list = list(teams)
-    random.shuffle(team_list)          # randomise so regenerate produces variety
 
-    rounds = _round_robin_pairs(team_list)
+    # Build as many rounds as needed, repeating the round-robin with fresh
+    # random shuffles each cycle so subsequent cycles vary.
+    all_rounds = []
+    while num_rounds is None or len(all_rounds) < num_rounds:
+        cycle_teams = list(team_list)
+        random.shuffle(cycle_teams)
+        cycle = _round_robin_pairs(cycle_teams)
+        all_rounds.extend(cycle)
+        if num_rounds is None:
+            break  # one cycle only
+
+    if num_rounds is not None:
+        all_rounds = all_rounds[:num_rounds]
 
     assigned_rounds = [
         {
             'matches': _assign_home_away(r['pairs'], bars),
             'bye': r['bye'],
         }
-        for r in rounds
+        for r in all_rounds
     ]
 
     return _map_to_dates(assigned_rounds, season)

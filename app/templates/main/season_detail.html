@@ -10,6 +10,9 @@
     </span>
     <span class="text-muted small">
       <i class="bi bi-calendar3 me-1"></i>{{ season.start_date.strftime('%B %-d, %Y') }}
+      {% if season.end_date %}
+      &ndash; {{ season.end_date.strftime('%B %-d, %Y') }}
+      {% endif %}
       &mdash; {{ season.frequency | title }}
       &nbsp;&bull;&nbsp;
       <i class="bi bi-people me-1"></i>{{ season.teams | length }} teams

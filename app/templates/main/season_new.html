@@ -30,6 +30,46 @@
         </div>
       </div>
 
+      <!-- Season length: end date OR number of weeks -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Season Length</label>
+        <div class="card">
+          <div class="card-body py-3">
+            <div class="row g-3 align-items-center">
+
+              <!-- End date option -->
+              <div class="col-auto">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="length_mode"
+                         id="mode_end_date" value="end_date" checked>
+                  <label class="form-check-label fw-semibold" for="mode_end_date">End Date</label>
+                </div>
+              </div>
+              <div class="col-sm-4">
+                <input type="date" id="end_date" name="end_date" class="form-control">
+              </div>
+
+              <div class="col-auto text-muted d-none d-sm-block">or</div>
+
+              <!-- Number of weeks option -->
+              <div class="col-auto">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="length_mode"
+                         id="mode_num_weeks" value="num_weeks">
+                  <label class="form-check-label fw-semibold" for="mode_num_weeks">Weeks</label>
+                </div>
+              </div>
+              <div class="col-sm-3">
+                <input type="number" id="num_weeks" name="num_weeks" class="form-control"
+                       min="1" placeholder="e.g. 16" disabled>
+              </div>
+
+            </div>
+            <div class="text-muted small mt-2" id="rounds-preview"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- Team selection -->
       <div class="mb-3">
         <label class="form-label fw-semibold">
@@ -104,7 +144,7 @@
 
 {% block extra_js %}
 <script>
-  // Dynamic blackout date rows
+  // ── Blackout date rows ──────────────────────────────────────────────────
   document.getElementById('add-blackout').addEventListener('click', function () {
     const container = document.getElementById('blackout-container');
     const row = document.createElement('div');
@@ -115,29 +155,108 @@
         <i class="bi bi-x-lg"></i>
       </button>`;
     container.appendChild(row);
+    updateRoundsPreview();
   });
 
   document.getElementById('blackout-container').addEventListener('click', function (e) {
     const btn = e.target.closest('.remove-blackout');
-    if (btn) btn.closest('.blackout-row').remove();
+    if (btn) { btn.closest('.blackout-row').remove(); updateRoundsPreview(); }
   });
+  document.getElementById('blackout-container').addEventListener('change', updateRoundsPreview);
 
-  // Live team count label
+  // ── Team count label ────────────────────────────────────────────────────
   function updateTeamCount() {
     const n = document.querySelectorAll('.team-checkbox:checked').length;
     const label = document.getElementById('team-count-label');
     if (!label) return;
-    if (n === 0) {
-      label.textContent = '— none selected';
-    } else {
-      const rounds = n % 2 === 0 ? n - 1 : n;
-      label.textContent = `— ${n} selected, ${rounds} round${rounds !== 1 ? 's' : ''}`;
-    }
+    label.textContent = n === 0 ? '— none selected' : `— ${n} selected`;
+  }
+  document.querySelectorAll('.team-checkbox').forEach(cb => cb.addEventListener('change', updateTeamCount));
+  updateTeamCount();
+
+  // ── Season length toggle & auto-populate ───────────────────────────────
+  const endDateInput  = document.getElementById('end_date');
+  const numWeeksInput = document.getElementById('num_weeks');
+  const startInput    = document.getElementById('start_date');
+  const freqSelect    = document.getElementById('frequency');
+
+  function freqWeeks() {
+    return freqSelect.value === 'biweekly' ? 2 : 1;
   }
 
-  document.querySelectorAll('.team-checkbox').forEach(function (cb) {
-    cb.addEventListener('change', updateTeamCount);
+  // Switch active field when radio changes
+  document.querySelectorAll('input[name="length_mode"]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      const useEndDate = this.value === 'end_date';
+      endDateInput.disabled  = !useEndDate;
+      numWeeksInput.disabled =  useEndDate;
+      updateRoundsPreview();
+    });
   });
-  updateTeamCount();
+
+  // End date → populate weeks
+  endDateInput.addEventListener('change', function () {
+    const start = startInput.value;
+    if (!start || !this.value) return;
+    const diffDays = (new Date(this.value) - new Date(start)) / 86400000;
+    const weeks = Math.max(1, Math.floor(diffDays / (7 * freqWeeks())) + 1);
+    numWeeksInput.value = weeks;
+    updateRoundsPreview();
+  });
+
+  // Weeks → populate end date
+  numWeeksInput.addEventListener('input', function () {
+    const start = startInput.value;
+    if (!start || !this.value) return;
+    const weeks = Math.max(1, parseInt(this.value) || 1);
+    const end = new Date(start);
+    end.setDate(end.getDate() + (weeks - 1) * 7 * freqWeeks());
+    endDateInput.value = end.toISOString().split('T')[0];
+    updateRoundsPreview();
+  });
+
+  // Recalculate when start date or frequency changes
+  startInput.addEventListener('change', function () {
+    if (endDateInput.value) endDateInput.dispatchEvent(new Event('change'));
+    updateRoundsPreview();
+  });
+  freqSelect.addEventListener('change', function () {
+    if (endDateInput.value) endDateInput.dispatchEvent(new Event('change'));
+    updateRoundsPreview();
+  });
+
+  // ── Rounds preview ──────────────────────────────────────────────────────
+  function getBlackoutDates() {
+    const dates = new Set();
+    document.querySelectorAll('input[name="blackout_date"]').forEach(function (inp) {
+      if (inp.value) dates.add(inp.value);
+    });
+    return dates;
+  }
+
+  function updateRoundsPreview() {
+    const preview = document.getElementById('rounds-preview');
+    if (!preview) return;
+    const start = startInput.value;
+    const end   = endDateInput.value;
+    if (!start || !end) { preview.textContent = ''; return; }
+
+    const startD  = new Date(start);
+    const endD    = new Date(end);
+    if (endD < startD) { preview.textContent = ''; return; }
+
+    const blackouts = getBlackoutDates();
+    const stepDays  = freqWeeks() * 7;
+    let cur = new Date(startD);
+    let count = 0;
+    while (cur <= endD) {
+      const iso = cur.toISOString().split('T')[0];
+      if (!blackouts.has(iso)) count++;
+      cur.setDate(cur.getDate() + stepDays);
+    }
+    preview.textContent = count > 0
+      ? `${count} match night${count !== 1 ? 's' : ''} scheduled (excluding blackout dates)`
+      : 'No match nights in this range — check your dates.';
+  }
 </script>
 {% endblock %}
