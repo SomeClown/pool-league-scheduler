@@ -36,6 +36,15 @@ def admin_required(f):
     return decorated
 
 
+def superuser_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not current_user.is_superuser:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
+
+
 def _build_rounds(season):
     """Group a season's matches and byes into an ordered dict keyed by round."""
     rounds = {}
@@ -384,6 +393,8 @@ def user_add():
     role = request.form.get('role', 'viewer')
     if not username or not password:
         flash('Username and password are required.', 'danger')
+    elif role == 'admin' and not current_user.is_superuser:
+        flash('Only the superuser can create admin accounts.', 'danger')
     elif User.query.filter_by(username=username).first():
         flash(f'Username "{username}" is already taken.', 'danger')
     else:
@@ -400,8 +411,14 @@ def user_add():
 @admin_required
 def user_edit(user_id):
     user = User.query.get_or_404(user_id)
+    if user.is_admin and not current_user.is_superuser:
+        flash('Only the superuser can edit admin accounts.', 'danger')
+        return redirect(url_for('main.admin') + '#users')
     user.username = request.form.get('username', user.username).strip() or user.username
-    user.role = request.form.get('role', user.role)
+    new_role = request.form.get('role', user.role)
+    if new_role == 'admin' and not current_user.is_superuser:
+        new_role = user.role  # ignore role change attempt
+    user.role = new_role
     new_password = request.form.get('password', '').strip()
     if new_password:
         user.set_password(new_password)
@@ -417,8 +434,33 @@ def user_delete(user_id):
     user = User.query.get_or_404(user_id)
     if user.id == current_user.id:
         flash("You cannot delete your own account.", 'danger')
+    elif user.is_superuser:
+        flash("The superuser account cannot be deleted.", 'danger')
+    elif user.is_admin and not current_user.is_superuser:
+        flash('Only the superuser can delete admin accounts.', 'danger')
     else:
         db.session.delete(user)
         db.session.commit()
         flash(f'User "{user.username}" deleted.', 'success')
     return redirect(url_for('main.admin') + '#users')
+
+
+@bp.route('/account/password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_pw = request.form.get('current_password', '')
+        new_pw = request.form.get('new_password', '')
+        confirm_pw = request.form.get('confirm_password', '')
+        if not current_user.check_password(current_pw):
+            flash('Current password is incorrect.', 'danger')
+        elif len(new_pw) < 8:
+            flash('New password must be at least 8 characters.', 'danger')
+        elif new_pw != confirm_pw:
+            flash('New passwords do not match.', 'danger')
+        else:
+            current_user.set_password(new_pw)
+            db.session.commit()
+            flash('Password updated successfully.', 'success')
+            return redirect(url_for('main.seasons'))
+    return render_template('main/change_password.html')

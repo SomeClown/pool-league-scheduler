@@ -151,6 +151,8 @@
         </thead>
         <tbody>
           {% for user in users %}
+          {% set can_edit = current_user.is_superuser or not user.is_admin %}
+          {% set can_delete = user.id != current_user.id and not user.is_superuser and (current_user.is_superuser or not user.is_admin) %}
           <tr>
             <td class="fw-semibold">
               {{ user.username }}
@@ -158,17 +160,26 @@
               <span class="badge bg-primary ms-1 small">you</span>
               {% endif %}
               <div class="d-sm-none mt-1">
-                <span class="badge bg-{{ 'warning text-dark' if user.role == 'admin' else 'secondary' }}">
-                  {{ user.role | title }}
-                </span>
+                {% if user.is_superuser %}
+                <span class="badge bg-danger">Superuser</span>
+                {% elif user.role == 'admin' %}
+                <span class="badge bg-warning text-dark">Admin</span>
+                {% else %}
+                <span class="badge bg-secondary">Viewer</span>
+                {% endif %}
               </div>
             </td>
             <td class="d-none d-sm-table-cell">
-              <span class="badge bg-{{ 'warning text-dark' if user.role == 'admin' else 'secondary' }}">
-                {{ user.role | title }}
-              </span>
+              {% if user.is_superuser %}
+              <span class="badge bg-danger">Superuser</span>
+              {% elif user.role == 'admin' %}
+              <span class="badge bg-warning text-dark">Admin</span>
+              {% else %}
+              <span class="badge bg-secondary">Viewer</span>
+              {% endif %}
             </td>
             <td class="text-end">
+              {% if can_edit %}
               <button class="btn btn-sm btn-outline-secondary me-1"
                       data-bs-toggle="modal" data-bs-target="#editUserModal"
                       data-id="{{ user.id }}"
@@ -176,7 +187,8 @@
                       data-role="{{ user.role }}">
                 Edit
               </button>
-              {% if user.id != current_user.id %}
+              {% endif %}
+              {% if can_delete %}
               <form method="POST" action="{{ url_for('main.user_delete', user_id=user.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Delete user {{ user.username }}?')">
@@ -344,7 +356,9 @@
             <label class="form-label">Role</label>
             <select name="role" class="form-select">
               <option value="viewer">Viewer</option>
+              {% if current_user.is_superuser %}
               <option value="admin">Admin</option>
+              {% endif %}
             </select>
           </div>
         </div>
@@ -379,7 +393,9 @@
             <label class="form-label">Role</label>
             <select name="role" id="editUserRole" class="form-select">
               <option value="viewer">Viewer</option>
+              {% if current_user.is_superuser %}
               <option value="admin">Admin</option>
+              {% endif %}
             </select>
           </div>
         </div>

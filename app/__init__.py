@@ -49,12 +49,28 @@ def _register_cli(app):
             db.session.commit()
             click.echo(f'Admin user "{username}" created successfully.')
 
+    @app.cli.command('make-superuser')
+    @click.argument('username')
+    def make_superuser(username):
+        """Grant superuser status to an existing user.  Usage: flask make-superuser <username>"""
+        from app.models import User
+        with app.app_context():
+            user = User.query.filter_by(username=username).first()
+            if not user:
+                click.echo(f'User "{username}" not found.')
+                return
+            user.is_superuser = True
+            user.role = 'admin'
+            db.session.commit()
+            click.echo(f'"{username}" is now a superuser.')
+
     @app.cli.command('db-migrate')
     def db_migrate():
         """Add new columns to existing database tables without losing data."""
         from sqlalchemy import text
         migrations = [
             ("seasons", "end_date", "ALTER TABLE seasons ADD COLUMN end_date DATE"),
+            ("users", "is_superuser", "ALTER TABLE users ADD COLUMN is_superuser BOOLEAN NOT NULL DEFAULT 0"),
         ]
         with app.app_context():
             with db.engine.connect() as conn:
