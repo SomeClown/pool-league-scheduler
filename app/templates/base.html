@@ -36,6 +36,10 @@
              href="{{ url_for('main.admin') }}">Admin</a>
         </li>
         {% endif %}
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'main.instructions' %}active{% endif %}"
+             href="{{ url_for('main.instructions') }}">Instructions</a>
+        </li>
       </ul>
       <ul class="navbar-nav">
         <li class="nav-item dropdown">

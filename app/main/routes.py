@@ -265,6 +265,12 @@ def season_archive(season_id):
 # Admin
 # ---------------------------------------------------------------------------
 
+@bp.route('/instructions')
+@login_required
+def instructions():
+    return render_template('main/instructions.html')
+
+
 @bp.route('/admin')
 @login_required
 @admin_required

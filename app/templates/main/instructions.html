@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}Instructions — Pool League{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+
+    <h2 class="mb-1">Instructions</h2>
+    <p class="text-muted mb-4">How to use Pool League Scheduler</p>
+
+    <!-- Viewer section -->
+    <h4 class="mb-3"><i class="bi bi-calendar3 me-2 text-secondary"></i>Reading the Schedule</h4>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="fw-semibold">Schedule layout</h6>
+        <p class="mb-0">Each season is organised into rounds — one per match night. Every round lists the matches for that night, grouped by bar. The date appears at the top of each round card.</p>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="fw-semibold">Home and Away</h6>
+        <p class="mb-2">Every match is played at the <strong>home team's bar</strong>. The home team is always listed first:</p>
+        <p class="mb-0 font-monospace text-secondary ps-2">Home Team <span class="text-muted">vs</span> Away Team — Bar Name</p>
+        <p class="mt-2 mb-0 text-muted small">The away team travels to the home team's bar for the match.</p>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="fw-semibold">Byes</h6>
+        <p class="mb-0">When there is an odd number of teams, one team sits out each round. That team's name appears in the <em>Bye</em> row at the bottom of the round card. Byes rotate so that every team sits out the same number of times over a full cycle.</p>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <h6 class="fw-semibold">Printing the schedule</h6>
+        <p class="mb-0">Open any season and click <strong>Print Schedule</strong> at the top of the page. A print-formatted version of the full season opens automatically. On a desktop browser the print dialog appears immediately. On mobile, use your browser's share / print option.</p>
+      </div>
+    </div>
+
+    {% if current_user.is_admin %}
+    <hr class="my-4">
+
+    <!-- Admin section -->
+    <h4 class="mb-3"><i class="bi bi-gear me-2 text-secondary"></i>Admin Guide</h4>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="fw-semibold">Setup order</h6>
+        <p class="mb-2">Configure things in this order before creating a season:</p>
+        <ol class="mb-0">
+          <li class="mb-1"><strong>Bars</strong> — add each venue that hosts matches, and set its permanent table count.</li>
+          <li class="mb-1"><strong>Teams</strong> — add each team and assign it a home bar.</li>
+          <li><strong>Season</strong> — once bars and teams exist, create a season and select which teams participate.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="fw-semibold">Season length</h6>
+        <p class="mb-2">When creating a season you can define its length two ways:</p>
+        <ul class="mb-2">
+          <li><strong>End Date</strong> — pick a calendar date; the number of match nights is calculated automatically.</li>
+          <li><strong>Number of Weeks</strong> — enter a count; the end date is calculated automatically.</li>
+        </ul>
+        <p class="mb-0 text-muted small">Both fields stay in sync. The <em>match nights</em> preview below them shows how many rounds will be generated after excluding any blackout dates.</p>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="fw-semibold">Per-season table caps</h6>
+        <p class="mb-2">Each bar has a permanent table count set in the Admin panel. When creating a season you can optionally reduce the number of tables in use at any bar that has more than one table — for example, if only 2 of 3 tables are available for league play this season.</p>
+        <p class="mb-0 text-muted small">The cap only applies to the season being created; the bar's permanent count is not changed.</p>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="fw-semibold">Blackout dates</h6>
+        <p class="mb-0">Dates entered as blackouts are skipped entirely when the schedule is generated. Rounds are not lost — they shift forward so the full number of match nights is preserved.</p>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="fw-semibold">Regenerate</h6>
+        <p class="mb-0">The <strong>Regenerate</strong> button re-runs the scheduling algorithm with a fresh random seed. All season configuration — teams, dates, blackouts, and table caps — is preserved; only the match assignments change. Use this if you want a different arrangement of home/away assignments or round order.</p>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="fw-semibold">Home / Away alternation across cycles</h6>
+        <p class="mb-0">If a season runs long enough that the same two teams meet more than once, the algorithm flips their home/away assignment each time they meet. The team that was home in cycle 1 will be away in cycle 2, and so on.</p>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <h6 class="fw-semibold">Bar coverage goal</h6>
+        <p class="mb-2">The scheduler tries to ensure that every bar has at least one of its home teams playing on each match night.</p>
+        <p class="mb-0 text-muted small">This goal has one unavoidable exception: if a bar has only one team and that team receives a bye in a given round, the bar will have no match that night. This is a mathematical consequence of odd team counts, not a scheduling defect.</p>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <h6 class="fw-semibold">Archiving seasons</h6>
+        <p class="mb-0">Archiving a season removes it from the active list but preserves the full schedule permanently. Archived seasons can still be viewed and printed. They cannot be regenerated.</p>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
