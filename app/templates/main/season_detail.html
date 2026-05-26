@@ -26,6 +26,10 @@
        class="btn btn-outline-secondary" target="_blank">
       <i class="bi bi-printer me-1"></i>Print Schedule
     </a>
+    <a href="{{ url_for('main.season_compact', season_id=season.id) }}"
+       class="btn btn-outline-secondary" target="_blank">
+      <i class="bi bi-grid-3x2 me-1"></i>Compact View
+    </a>
     {% if current_user.is_admin and season.status == 'active' %}
     <form method="POST" action="{{ url_for('main.season_regenerate', season_id=season.id) }}"
           onsubmit="return confirm('Regenerate the schedule? All current matchups will be replaced.')">

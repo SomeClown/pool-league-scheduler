@@ -232,6 +232,16 @@ def season_print(season_id):
                            now=datetime.utcnow().date())
 
 
+@bp.route('/seasons/<int:season_id>/compact')
+@login_required
+def season_compact(season_id):
+    season = Season.query.get_or_404(season_id)
+    rounds = _build_rounds(season)
+    sorted_teams = sorted(season.teams, key=lambda t: (t.number is None, t.number or 0, t.name))
+    return render_template('main/season_compact.html', season=season, rounds=rounds,
+                           sorted_teams=sorted_teams)
+
+
 @bp.route('/seasons/<int:season_id>/regenerate', methods=['POST'])
 @login_required
 @admin_required
