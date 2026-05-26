@@ -49,7 +49,10 @@ def _build_rounds(season):
     """Group a season's matches and byes into an ordered dict keyed by round."""
     rounds = {}
 
-    for match in sorted(season.matches, key=lambda m: (m.round_num, m.bar.name, m.home_team.name)):
+    for match in sorted(season.matches, key=lambda m: (
+            m.round_num,
+            m.bar.name if m.bar else '',
+            m.home_team.name if m.home_team else '')):
         r = match.round_num
         if r not in rounds:
             rounds[r] = {'matches': [], 'bye': None, 'date': match.date}
