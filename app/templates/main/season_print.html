@@ -27,15 +27,15 @@
       <tbody>
         {% for match in round_data.matches %}
         <tr>
-          <td class="team home">{{ match.home_team.name }}</td>
+          <td class="team home">{{ match.home_team.display_name }}</td>
           <td class="vs">vs.</td>
-          <td class="team away">{{ match.away_team.name }}</td>
+          <td class="team away">{{ match.away_team.display_name }}</td>
           <td class="venue">@ {{ match.bar.name }}</td>
         </tr>
         {% endfor %}
         {% if round_data.bye %}
         <tr class="bye-row">
-          <td colspan="4">Bye: {{ round_data.bye.team.name }}</td>
+          <td colspan="4">Bye: {{ round_data.bye.team.display_name }}</td>
         </tr>
         {% endif %}
       </tbody>

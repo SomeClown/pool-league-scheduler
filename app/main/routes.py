@@ -343,6 +343,7 @@ def bar_delete(bar_id):
 def team_add():
     name = request.form.get('name', '').strip()
     bar_id = request.form.get('bar_id', type=int)
+    number = request.form.get('number', type=int)
     if not name:
         flash('Team name is required.', 'danger')
     elif not bar_id:
@@ -350,7 +351,7 @@ def team_add():
     elif Team.query.filter_by(name=name).first():
         flash(f'A team named "{name}" already exists.', 'danger')
     else:
-        db.session.add(Team(name=name, bar_id=bar_id))
+        db.session.add(Team(name=name, bar_id=bar_id, number=number))
         db.session.commit()
         flash(f'"{name}" added.', 'success')
     return redirect(url_for('main.admin') + '#teams')
@@ -363,6 +364,8 @@ def team_edit(team_id):
     team = Team.query.get_or_404(team_id)
     team.name = request.form.get('name', team.name).strip() or team.name
     team.bar_id = request.form.get('bar_id', team.bar_id, type=int)
+    raw_number = request.form.get('number', '').strip()
+    team.number = int(raw_number) if raw_number else None
     db.session.commit()
     flash(f'"{team.name}" updated.', 'success')
     return redirect(url_for('main.admin') + '#teams')

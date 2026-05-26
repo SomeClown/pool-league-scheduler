@@ -93,14 +93,16 @@
       <table class="table table-sm table-hover align-middle">
         <thead class="table-light">
           <tr>
+            <th style="width:3.5rem">#</th>
             <th>Name</th>
             <th class="d-none d-sm-table-cell">Home Bar</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          {% for team in teams %}
+          {% for team in teams | sort(attribute='number') %}
           <tr>
+            <td class="text-muted">{{ team.number if team.number is not none else '—' }}</td>
             <td class="fw-semibold">
               {{ team.name }}
               <div class="d-sm-none text-muted small">{{ team.bar.name }}</div>
@@ -110,6 +112,7 @@
               <button class="btn btn-sm btn-outline-secondary me-1"
                       data-bs-toggle="modal" data-bs-target="#editTeamModal"
                       data-id="{{ team.id }}"
+                      data-number="{{ team.number if team.number is not none else '' }}"
                       data-name="{{ team.name }}"
                       data-bar-id="{{ team.bar_id }}">
                 Edit
@@ -280,6 +283,10 @@
         </div>
         <div class="modal-body">
           <div class="mb-3">
+            <label class="form-label">Team Number <span class="text-muted small">(optional)</span></label>
+            <input type="number" name="number" class="form-control" min="1" placeholder="e.g. 4">
+          </div>
+          <div class="mb-3">
             <label class="form-label">Team Name</label>
             <input type="text" name="name" class="form-control" required autofocus>
           </div>
@@ -312,6 +319,10 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Team Number <span class="text-muted small">(optional)</span></label>
+            <input type="number" name="number" id="editTeamNumber" class="form-control" min="1" placeholder="e.g. 4">
+          </div>
           <div class="mb-3">
             <label class="form-label">Team Name</label>
             <input type="text" name="name" id="editTeamName" class="form-control" required>
@@ -434,6 +445,7 @@
   // Populate Edit Team modal
   document.getElementById('editTeamModal').addEventListener('show.bs.modal', function (e) {
     const btn = e.relatedTarget;
+    document.getElementById('editTeamNumber').value = btn.dataset.number || '';
     document.getElementById('editTeamName').value = btn.dataset.name;
     document.getElementById('editTeamBarId').value = btn.dataset.barId;
     document.getElementById('editTeamForm').action = '/admin/teams/' + btn.dataset.id + '/edit';

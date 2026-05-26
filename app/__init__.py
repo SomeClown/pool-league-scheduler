@@ -71,6 +71,7 @@ def _register_cli(app):
         migrations = [
             ("seasons", "end_date", "ALTER TABLE seasons ADD COLUMN end_date DATE"),
             ("users", "is_superuser", "ALTER TABLE users ADD COLUMN is_superuser BOOLEAN NOT NULL DEFAULT 0"),
+            ("teams", "number", "ALTER TABLE teams ADD COLUMN number INTEGER"),
         ]
         with app.app_context():
             with db.engine.connect() as conn:

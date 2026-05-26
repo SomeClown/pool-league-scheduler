@@ -46,8 +46,14 @@ class Bar(db.Model):
 class Team(db.Model):
     __tablename__ = 'teams'
     id = db.Column(db.Integer, primary_key=True)
+    number = db.Column(db.Integer, nullable=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=False)
+
+    @property
+    def display_name(self):
+        """Return '#N Name' if a number is set, otherwise just the name."""
+        return f'#{self.number} {self.name}' if self.number is not None else self.name
 
     def __repr__(self):
         return f'<Team {self.name}>'
