@@ -448,6 +448,20 @@ def user_delete(user_id):
     return redirect(url_for('main.admin') + '#users')
 
 
+@bp.route('/admin/clear-schedules', methods=['POST'])
+@login_required
+@superuser_required
+def clear_all_schedules():
+    from sqlalchemy import text
+    # Clear the season_teams association table first (no ORM cascade for plain Tables)
+    db.session.execute(text('DELETE FROM season_teams'))
+    # Delete all seasons — cascades to matches, byes, blackout_dates, bar_caps
+    Season.query.delete()
+    db.session.commit()
+    flash('All schedules have been deleted. Bars and teams are intact.', 'success')
+    return redirect(url_for('main.admin'))
+
+
 @bp.route('/account/password', methods=['GET', 'POST'])
 @login_required
 def change_password():
