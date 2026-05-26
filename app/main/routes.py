@@ -286,6 +286,7 @@ def instructions():
 def admin():
     bars = Bar.query.order_by(Bar.name).all()
     teams = Team.query.order_by(Team.name).all()
+    teams.sort(key=lambda t: (t.number is None, t.number or 0, t.name))
     users = User.query.order_by(User.username).all()
     return render_template('main/admin.html', bars=bars, teams=teams, users=users)
 

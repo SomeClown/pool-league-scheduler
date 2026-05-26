@@ -100,7 +100,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for team in teams | sort(attribute='number') %}
+          {% for team in teams %}
           <tr>
             <td class="text-muted">{{ team.number if team.number is not none else '—' }}</td>
             <td class="fw-semibold">
