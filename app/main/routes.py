@@ -457,10 +457,14 @@ def user_delete(user_id):
 @superuser_required
 def clear_all_schedules():
     from sqlalchemy import text
-    # Clear the season_teams association table first (no ORM cascade for plain Tables)
+    # Delete everything with explicit SQL in dependency order — bulk ORM delete
+    # bypasses cascade, so we do it manually to ensure matches/byes are removed.
+    db.session.execute(text('DELETE FROM byes'))
+    db.session.execute(text('DELETE FROM matches'))
+    db.session.execute(text('DELETE FROM blackout_dates'))
+    db.session.execute(text('DELETE FROM season_bar_caps'))
     db.session.execute(text('DELETE FROM season_teams'))
-    # Delete all seasons — cascades to matches, byes, blackout_dates, bar_caps
-    Season.query.delete()
+    db.session.execute(text('DELETE FROM seasons'))
     db.session.commit()
     flash('All schedules have been deleted. Bars and teams are intact.', 'success')
     return redirect(url_for('main.admin'))
