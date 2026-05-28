@@ -22,6 +22,10 @@
   </div>
 
   <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('main.season_export', season_id=season.id) }}"
+       class="btn btn-outline-success">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Export Excel
+    </a>
     <a href="{{ url_for('main.season_print', season_id=season.id) }}"
        class="btn btn-outline-secondary" target="_blank">
       <i class="bi bi-printer me-1"></i>Print Schedule

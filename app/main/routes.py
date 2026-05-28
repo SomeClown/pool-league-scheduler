@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import render_template, redirect, url_for, flash, request, abort
+from flask import render_template, redirect, url_for, flash, request, abort, send_file
 from flask_login import login_required, current_user
 
 from app import db
@@ -230,6 +230,22 @@ def season_print(season_id):
     rounds = _build_rounds(season)
     return render_template('main/season_print.html', season=season, rounds=rounds,
                            now=datetime.utcnow().date())
+
+
+@bp.route('/seasons/<int:season_id>/export')
+@login_required
+def season_export(season_id):
+    from app.main.export import build_season_excel
+    season = Season.query.get_or_404(season_id)
+    rounds = _build_rounds(season)
+    output = build_season_excel(season, rounds)
+    filename = season.name.replace(' ', '_') + '_Schedule.xlsx'
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename,
+    )
 
 
 @bp.route('/seasons/<int:season_id>/compact')
