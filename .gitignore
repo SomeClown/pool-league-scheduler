@@ -11,3 +11,4 @@ venv/
 instance/
 .DS_Store
 CLAUDE.md
+.idea/
