@@ -43,6 +43,7 @@
           <tr>
             <th>Name</th>
             <th>Tables</th>
+            <th>In Use</th>
             <th class="d-none d-md-table-cell">Teams</th>
             <th></th>
           </tr>
@@ -52,6 +53,7 @@
           <tr>
             <td class="fw-semibold">{{ bar.name }}</td>
             <td>{{ bar.tables }}</td>
+            <td>{{ bar.tables_in_use or bar.tables }}</td>
             <td class="text-muted small d-none d-md-table-cell">
               {{ bar.teams | map(attribute='name') | join(', ') or '—' }}
             </td>
@@ -60,7 +62,8 @@
                       data-bs-toggle="modal" data-bs-target="#editBarModal"
                       data-id="{{ bar.id }}"
                       data-name="{{ bar.name }}"
-                      data-tables="{{ bar.tables }}">
+                      data-tables="{{ bar.tables }}"
+                      data-tables-in-use="{{ bar.tables_in_use or bar.tables }}">
                 Edit
               </button>
               <form method="POST" action="{{ url_for('main.bar_delete', bar_id=bar.id) }}"
@@ -250,9 +253,18 @@
             <label class="form-label">Bar Name</label>
             <input type="text" name="name" class="form-control" required autofocus>
           </div>
-          <div class="mb-1">
+          <div class="mb-3">
             <label class="form-label">Pool Tables</label>
             <input type="number" name="tables" class="form-control" value="1" min="1" required>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Tables Used for Scheduling</label>
+            <input type="number" name="tables_in_use" class="form-control"
+                   min="1" placeholder="same as tables">
+            <div class="form-text">
+              Standing limit on how many tables the league schedules here.
+              Leave blank to use all tables.
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -278,9 +290,17 @@
             <label class="form-label">Bar Name</label>
             <input type="text" name="name" id="editBarName" class="form-control" required>
           </div>
-          <div class="mb-1">
+          <div class="mb-3">
             <label class="form-label">Pool Tables</label>
             <input type="number" name="tables" id="editBarTables" class="form-control" min="1" required>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Tables Used for Scheduling</label>
+            <input type="number" name="tables_in_use" id="editBarTablesInUse"
+                   class="form-control" min="1" required>
+            <div class="form-text">
+              Standing limit on how many tables the league schedules here.
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -483,6 +503,7 @@
     const btn = e.relatedTarget;
     document.getElementById('editBarName').value = btn.dataset.name;
     document.getElementById('editBarTables').value = btn.dataset.tables;
+    document.getElementById('editBarTablesInUse').value = btn.dataset.tablesInUse;
     document.getElementById('editBarForm').action = '/admin/bars/' + btn.dataset.id + '/edit';
   });
 

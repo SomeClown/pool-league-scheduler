@@ -140,6 +140,11 @@ def _register_cli(app):
             ("seasons", "end_date",     "ALTER TABLE seasons ADD COLUMN end_date DATE"),
             ("users",   "is_superuser", "ALTER TABLE users ADD COLUMN is_superuser BOOLEAN NOT NULL DEFAULT 0"),
             ("teams",   "number",       "ALTER TABLE teams ADD COLUMN number INTEGER"),
+            ("bars",    "tables_in_use", "ALTER TABLE bars ADD COLUMN tables_in_use INTEGER"),
+            # Backfill: existing bars schedule on all their tables. Idempotent
+            # (WHERE IS NULL), so re-running this migration is harmless.
+            ("bars",    "tables_in_use (backfill)",
+             "UPDATE bars SET tables_in_use = tables WHERE tables_in_use IS NULL"),
         ]
         with app.app_context():
             with db.engine.connect() as conn:

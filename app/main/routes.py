@@ -316,11 +316,14 @@ def season_new():
         bars_in_season = Bar.query.filter(Bar.id.in_(bar_ids)).all()
 
         # Store per-season table caps for each bar in this season.
-        # The submitted value is clamped to [1, bar.tables] so you can't
-        # accidentally cap to zero or exceed the bar's actual capacity.
+        # The bar's standing tables-in-use limit is a hard cap: the submitted
+        # value is clamped to [1, bar.tables_in_use], so a season can use
+        # fewer tables than the bar allows but never more. Raising the limit
+        # requires editing the bar itself in Admin.
         for bar in bars_in_season:
+            cap_limit   = bar.tables_in_use or bar.tables
             submitted   = request.form.get(f'bar_tables_{bar.id}', type=int)
-            tables_used = max(1, min(submitted, bar.tables)) if submitted is not None else bar.tables
+            tables_used = max(1, min(submitted, cap_limit)) if submitted is not None else cap_limit
             season.bar_caps.append(SeasonBarCap(bar_id=bar.id, tables_used=tables_used))
 
         schedule = generate_schedule(season, selected_teams, bars_in_season, num_rounds=num_rounds)
@@ -527,15 +530,20 @@ def bar_add():
     Requires a unique name and a table count (minimum 1). Duplicate names
     are rejected. Table count is clamped to at least 1 because a bar with
     zero tables is just a bar, and we have enough of those already.
+
+    'Tables in use' (how many tables the league schedules on) is optional
+    and clamped to [1, tables]; it defaults to the full table count.
     """
     name   = request.form.get('name', '').strip()
-    tables = request.form.get('tables', 1, type=int)
+    tables = max(1, request.form.get('tables', 1, type=int))
+    in_use = request.form.get('tables_in_use', type=int)
+    in_use = max(1, min(in_use, tables)) if in_use is not None else tables
     if not name:
         flash('Bar name is required.', 'danger')
     elif Bar.query.filter_by(name=name).first():
         flash(f'A bar named "{name}" already exists.', 'danger')
     else:
-        db.session.add(Bar(name=name, tables=max(1, tables)))
+        db.session.add(Bar(name=name, tables=tables, tables_in_use=in_use))
         db.session.commit()
         flash(f'"{name}" added.', 'success')
     return redirect(url_for('main.admin') + '#bars')
@@ -546,15 +554,21 @@ def bar_add():
 @admin_required
 def bar_edit(bar_id):
     """
-    Update an existing bar's name and/or table count.
+    Update an existing bar's name, table count, and/or tables in use.
 
-    Table count is clamped to a minimum of 1. Note that reducing a bar's
-    table count below what an active season's cap is set to won't automatically
-    update those caps — that's a you-problem to sort out manually.
+    Table count is clamped to a minimum of 1, and tables-in-use to
+    [1, tables] — so lowering the physical count automatically pulls the
+    in-use limit down with it. Note that reducing these below what an active
+    season's cap is set to won't automatically update those caps — that's
+    a you-problem to sort out manually.
     """
     bar        = Bar.query.get_or_404(bar_id)
     bar.name   = request.form.get('name', bar.name).strip() or bar.name
     bar.tables = max(1, request.form.get('tables', bar.tables, type=int))
+    in_use     = request.form.get('tables_in_use', type=int)
+    if in_use is None:
+        in_use = bar.tables_in_use or bar.tables
+    bar.tables_in_use = max(1, min(in_use, bar.tables))
     db.session.commit()
     flash(f'"{bar.name}" updated.', 'success')
     return redirect(url_for('main.admin') + '#bars')

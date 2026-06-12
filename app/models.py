@@ -80,19 +80,23 @@ class Bar(db.Model):
     """
     Represents a physical bar / venue that hosts pool league matches.
 
-    Each bar has one or more pool tables, which determines how many matches
-    can be scheduled there simultaneously. Every team must belong to exactly
-    one home bar. Matches are always played at the home team's bar — away
-    teams travel to their opponent's venue.
+    Each bar has one or more pool tables. `tables` is the permanent physical
+    count; `tables_in_use` is how many of them the league actually schedules
+    on (a standing limit, e.g. a bar with 3 tables that only ever gives the
+    league 2). `tables_in_use` is a hard cap: per-season overrides can lower
+    it further but never exceed it. Every team must belong to exactly one
+    home bar. Matches are always played at the home team's bar — away teams
+    travel to their opponent's venue.
 
     A bar cannot be deleted while it still has teams assigned to it.
     """
 
     __tablename__ = 'bars'
 
-    id     = db.Column(db.Integer, primary_key=True)
-    name   = db.Column(db.String(100), nullable=False, unique=True)
-    tables = db.Column(db.Integer, nullable=False, default=1)
+    id            = db.Column(db.Integer, primary_key=True)
+    name          = db.Column(db.String(100), nullable=False, unique=True)
+    tables        = db.Column(db.Integer, nullable=False, default=1)
+    tables_in_use = db.Column(db.Integer, nullable=False, default=1)
 
     # All teams whose home venue is this bar.
     teams  = db.relationship('Team', backref='bar', lazy=True)

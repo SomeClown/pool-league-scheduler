@@ -80,12 +80,17 @@
         <div class="row g-2">
           {% for bar in bars %}
           {% if bar.teams %}
+          {% set in_use = bar.tables_in_use or bar.tables %}
           <div class="col-sm-6">
             <div class="card h-100">
               <div class="card-header py-2 fw-semibold small">
                 {{ bar.name }}
                 <span class="text-muted fw-normal">
+                  {% if in_use < bar.tables %}
+                  — {{ in_use }} of {{ bar.tables }} tables in use
+                  {% else %}
                   — {{ bar.tables }} table{{ 's' if bar.tables != 1 }}
+                  {% endif %}
                 </span>
               </div>
               <div class="card-body py-2">
@@ -100,17 +105,17 @@
                 </div>
                 {% endfor %}
               </div>
-              {% if bar.tables > 1 %}
+              {% if in_use > 1 %}
               <div class="card-footer py-2 bg-transparent border-top">
                 <label class="form-label small mb-1 text-muted">
-                  Tables in use this season
+                  Tables in use this season (max {{ in_use }})
                 </label>
                 <input type="number"
                        name="bar_tables_{{ bar.id }}"
                        class="form-control form-control-sm"
-                       value="{{ bar.tables }}"
+                       value="{{ in_use }}"
                        min="1"
-                       max="{{ bar.tables }}">
+                       max="{{ in_use }}">
               </div>
               {% endif %}
             </div>

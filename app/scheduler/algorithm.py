@@ -71,7 +71,8 @@ def generate_schedule(season, teams, bars, num_rounds=None):
                 'bye':       Team | None,
             }
     """
-    # Per-season table caps: bar_id → tables_used (falls back to bar.tables if not set).
+    # Per-season table caps: bar_id → tables_used (falls back to the bar's
+    # standing tables_in_use limit if not set).
     bar_caps  = {cap.bar_id: cap.tables_used for cap in season.bar_caps}
     team_list = list(teams)
 
@@ -218,8 +219,10 @@ def _assign_home_away(pairs, bars, bar_caps, matchup_history, team_streaks):
         List of (home_team, away_team, bar_id) tuples.
     """
     # Build per-bar state tracking capacity and current load for this round.
+    # Fallback when a season has no cap row: the bar's standing tables_in_use
+    # limit (with bar.tables as a last resort for pre-migration rows).
     bar_state = {
-        b.id: {'capacity': bar_caps.get(b.id, b.tables), 'load': 0}
+        b.id: {'capacity': bar_caps.get(b.id, b.tables_in_use or b.tables), 'load': 0}
         for b in bars
     }
 
