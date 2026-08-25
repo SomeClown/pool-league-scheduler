@@ -1,5 +1,6 @@
 /* ── Design tokens ── */
 :root {
+  color-scheme: dark;
   --svpl-accent:            #6ea8fe;  /* brand primary — Bootstrap dark-mode blue */
   --svpl-accent-hover:      #9ec5fe;
   --svpl-surface:           #2b3035;  /* elevated surface: cards, tab panels */
@@ -30,7 +31,12 @@ main.container {
 /* ── Season cards ── */
 .season-card {
   border-left: 4px solid var(--svpl-season-active);
-  transition: box-shadow 0.15s ease-in-out, border-left-color 0.15s ease-in-out;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .season-card {
+    transition: box-shadow 0.15s ease-in-out, border-left-color 0.15s ease-in-out;
+  }
 }
 
 .season-card:hover {

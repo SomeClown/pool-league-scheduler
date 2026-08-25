@@ -24,14 +24,14 @@
       <div class="mb-3">
         <label for="name" class="form-label fw-semibold">Season Name</label>
         <input type="text" id="name" name="name" class="form-control"
-               placeholder="e.g. Spring 2026" required>
+               placeholder="e.g. Spring 2026" autocomplete="off" required>
       </div>
 
       <!-- Start date + frequency -->
       <div class="row g-3 mb-3">
         <div class="col-sm-6">
           <label for="start_date" class="form-label fw-semibold">Start Date</label>
-          <input type="date" id="start_date" name="start_date" class="form-control" required>
+          <input type="date" id="start_date" name="start_date" class="form-control" autocomplete="off" required>
         </div>
         <div class="col-sm-6">
           <label class="form-label fw-semibold">Frequency</label>
@@ -61,12 +61,12 @@
             </div>
             <div class="row g-3 align-items-center">
               <div class="col-sm-4">
-                <input type="date" id="end_date" name="end_date" class="form-control">
+                <input type="date" id="end_date" name="end_date" class="form-control" autocomplete="off">
               </div>
               <div class="col-auto text-muted d-none d-sm-block">or</div>
               <div class="col-sm-3">
                 <input type="number" id="num_weeks" name="num_weeks" class="form-control"
-                       min="1" placeholder="e.g. 16" disabled>
+                       min="1" placeholder="e.g. 16" autocomplete="off" disabled>
               </div>
             </div>
             <div class="text-muted small mt-2" id="rounds-preview"></div>
@@ -142,8 +142,8 @@
         <div id="blackout-container">
           <div class="input-group mb-2 blackout-row">
             <input type="date" name="blackout_date" class="form-control">
-            <button type="button" class="btn btn-outline-danger remove-blackout">
-              <i class="bi bi-x-lg"></i>
+            <button type="button" class="btn btn-outline-danger remove-blackout" aria-label="Remove blackout date">
+              <i class="bi bi-x-lg" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -172,9 +172,9 @@
     const row = document.createElement('div');
     row.className = 'input-group mb-2 blackout-row';
     row.innerHTML = `
-      <input type="date" name="blackout_date" class="form-control">
-      <button type="button" class="btn btn-outline-danger remove-blackout">
-        <i class="bi bi-x-lg"></i>
+      <input type="date" name="blackout_date" class="form-control" autocomplete="off">
+      <button type="button" class="btn btn-outline-danger remove-blackout" aria-label="Remove blackout date">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
       </button>`;
     container.appendChild(row);
     updateRoundsPreview();

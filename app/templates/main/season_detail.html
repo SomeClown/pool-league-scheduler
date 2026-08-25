@@ -91,8 +91,9 @@
                       data-bs-toggle="collapse"
                       data-bs-target="#roster-{{ match.id }}"
                       aria-expanded="false"
-                      title="Show rosters">
-                <i class="bi bi-people"></i>
+                      aria-controls="roster-{{ match.id }}"
+                      aria-label="Show rosters for this match">
+                <i class="bi bi-people" aria-hidden="true"></i>
               </button>
               {% endif %}
               <span class="team-home">{{ match.home_team.display_name }}</span>
@@ -216,8 +217,9 @@
                 action="{{ url_for('main.blackout_delete', season_id=season.id, blackout_id=bd.id) }}"
                 class="d-inline">
             <button type="submit" class="btn btn-sm btn-outline-danger"
+                    aria-label="Remove blackout date"
                     onclick="return confirm('Remove this blackout date? All round dates will be recalculated.')">
-              <i class="bi bi-x-lg"></i>
+              <i class="bi bi-x-lg" aria-hidden="true"></i>
             </button>
           </form>
           {% endif %}

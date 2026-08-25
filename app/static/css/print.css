@@ -125,6 +125,7 @@ body {
   body {
     background: #1a1d20;
     color: #dee2e6;
+    color-scheme: dark;
     padding: 1.5rem;
   }
   .print-header {

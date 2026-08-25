@@ -36,7 +36,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h5 class="mb-0">Bars</h5>
       <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addBarModal">
-        <i class="bi bi-plus-lg me-1"></i>Add Bar
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add Bar
       </button>
     </div>
 
@@ -91,7 +91,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h5 class="mb-0">Teams</h5>
       <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTeamModal">
-        <i class="bi bi-plus-lg me-1"></i>Add Team
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add Team
       </button>
     </div>
 
@@ -120,8 +120,8 @@
                       data-bs-toggle="collapse"
                       data-bs-target="#team-players-{{ team.id }}"
                       aria-expanded="false"
-                      title="Manage players">
-                <i class="bi bi-people me-1"></i>{{ team.players | length }}
+                      aria-label="Manage players ({{ team.players | length }})">
+                <i class="bi bi-people me-1" aria-hidden="true"></i>{{ team.players | length }}
               </button>
               <button class="btn btn-sm btn-outline-secondary me-1"
                       data-bs-toggle="modal" data-bs-target="#editTeamModal"
@@ -195,8 +195,8 @@
                              placeholder="Phone (optional)">
                     </div>
                     <div class="col-sm-1">
-                      <button type="submit" class="btn btn-sm btn-primary w-100">
-                        <i class="bi bi-plus-lg"></i>
+                      <button type="submit" class="btn btn-sm btn-primary w-100" aria-label="Add player">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
                       </button>
                     </div>
                   </form>
@@ -218,7 +218,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h5 class="mb-0">Users</h5>
       <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
-        <i class="bi bi-plus-lg me-1"></i>Add User
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add User
       </button>
     </div>
 
