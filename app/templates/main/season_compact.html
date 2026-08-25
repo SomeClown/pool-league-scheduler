@@ -4,11 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ season.name }} — Compact</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
       font-size: 11pt;
       color: #000;
       background: #fff;
@@ -137,11 +140,30 @@
       padding-left: 8pt;
     }
 
+    /* ── Screen: dark mode ── */
+    @media screen {
+      body                         { background: #212529; color: #dee2e6; }
+      .page-header                 { border-bottom-color: #495057; }
+      .page-header .subtitle       { color: #8d9299; }
+      thead th                     { background: #343a40; color: #f8f9fa; }
+      .team-key h2                 { background: #343a40; color: #f8f9fa; }
+      tbody tr                     { border-bottom-color: #373b3e; }
+      tbody tr:nth-child(even)     { background: #1c1f23; }
+      .bye-note                    { color: #8d9299; }
+      .key-table td                { border-bottom-color: #373b3e; }
+      .key-table td.key-num        { border-right-color: #495057; }
+      .no-print button             { background: #343a40; color: #dee2e6;
+                                     border: 1px solid #495057; border-radius: 4px; }
+    }
+
     /* ── Print overrides ── */
     @media print {
-      body { padding: 0.3in 0.5in; }
+      body { background: #fff !important; color: #000 !important; padding: 0.3in 0.5in; }
       .no-print { display: none !important; }
-      tbody tr:nth-child(even) { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      thead th, .team-key h2 { background: #222 !important; color: #fff !important;
+                                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      tbody tr:nth-child(even) { background: #f0f0f0 !important;
+                                  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       @page { margin: 0.5in 0.6in; size: letter portrait; }
     }
   </style>

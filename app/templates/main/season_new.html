@@ -34,11 +34,15 @@
           <input type="date" id="start_date" name="start_date" class="form-control" required>
         </div>
         <div class="col-sm-6">
-          <label for="frequency" class="form-label fw-semibold">Frequency</label>
-          <select id="frequency" name="frequency" class="form-select">
-            <option value="weekly">Weekly</option>
-            <option value="biweekly">Bi-Weekly</option>
-          </select>
+          <label class="form-label fw-semibold">Frequency</label>
+          <div class="btn-group w-100" role="group" aria-label="Match frequency">
+            <input type="radio" class="btn-check" name="frequency" id="freq-weekly"
+                   value="weekly" autocomplete="off" checked>
+            <label class="btn btn-outline-secondary" for="freq-weekly">Weekly</label>
+            <input type="radio" class="btn-check" name="frequency" id="freq-biweekly"
+                   value="biweekly" autocomplete="off">
+            <label class="btn btn-outline-secondary" for="freq-biweekly">Bi-Weekly</label>
+          </div>
         </div>
       </div>
 
@@ -47,35 +51,23 @@
         <label class="form-label fw-semibold">Season Length</label>
         <div class="card">
           <div class="card-body py-3">
+            <div class="btn-group mb-3" role="group" aria-label="Season length mode">
+              <input type="radio" class="btn-check" name="length_mode"
+                     id="mode_end_date" value="end_date" autocomplete="off" checked>
+              <label class="btn btn-outline-secondary" for="mode_end_date">End Date</label>
+              <input type="radio" class="btn-check" name="length_mode"
+                     id="mode_num_weeks" value="num_weeks" autocomplete="off">
+              <label class="btn btn-outline-secondary" for="mode_num_weeks">Weeks</label>
+            </div>
             <div class="row g-3 align-items-center">
-
-              <!-- End date option -->
-              <div class="col-auto">
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="length_mode"
-                         id="mode_end_date" value="end_date" checked>
-                  <label class="form-check-label fw-semibold" for="mode_end_date">End Date</label>
-                </div>
-              </div>
               <div class="col-sm-4">
                 <input type="date" id="end_date" name="end_date" class="form-control">
               </div>
-
               <div class="col-auto text-muted d-none d-sm-block">or</div>
-
-              <!-- Number of weeks option -->
-              <div class="col-auto">
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="length_mode"
-                         id="mode_num_weeks" value="num_weeks">
-                  <label class="form-check-label fw-semibold" for="mode_num_weeks">Weeks</label>
-                </div>
-              </div>
               <div class="col-sm-3">
                 <input type="number" id="num_weeks" name="num_weeks" class="form-control"
                        min="1" placeholder="e.g. 16" disabled>
               </div>
-
             </div>
             <div class="text-muted small mt-2" id="rounds-preview"></div>
           </div>
@@ -208,10 +200,10 @@
   const endDateInput  = document.getElementById('end_date');
   const numWeeksInput = document.getElementById('num_weeks');
   const startInput    = document.getElementById('start_date');
-  const freqSelect    = document.getElementById('frequency');
 
   function freqWeeks() {
-    return freqSelect.value === 'biweekly' ? 2 : 1;
+    const checked = document.querySelector('input[name="frequency"]:checked');
+    return checked && checked.value === 'biweekly' ? 2 : 1;
   }
 
   // Switch active field when radio changes
@@ -250,9 +242,11 @@
     if (endDateInput.value) endDateInput.dispatchEvent(new Event('change'));
     updateRoundsPreview();
   });
-  freqSelect.addEventListener('change', function () {
-    if (endDateInput.value) endDateInput.dispatchEvent(new Event('change'));
-    updateRoundsPreview();
+  document.querySelectorAll('input[name="frequency"]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      if (endDateInput.value) endDateInput.dispatchEvent(new Event('change'));
+      updateRoundsPreview();
+    });
   });
 
   // ── Rounds preview ──────────────────────────────────────────────────────

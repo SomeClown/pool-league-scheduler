@@ -1,6 +1,21 @@
+/* ── Design tokens ── */
+:root {
+  --svpl-accent:            #6ea8fe;  /* brand primary — Bootstrap dark-mode blue */
+  --svpl-accent-hover:      #9ec5fe;
+  --svpl-surface:           #2b3035;  /* elevated surface: cards, tab panels */
+  --svpl-surface-raised:    #343a40;  /* further elevated: round-card headers, modal headers */
+  --svpl-border:            #373b3e;
+  --svpl-muted:             #8d9299;
+  --svpl-stripe:            #1c1f23;  /* alternating table row background */
+  --svpl-season-active:     #6ea8fe;
+  --svpl-season-archived:   #495057;
+  --svpl-warning-text:      #ffda6a;
+  --svpl-danger-text:       #ea868f;
+}
+
 /* ── Layout ── */
 body {
-  background-color: #f8f9fa;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .navbar-brand {
@@ -14,23 +29,24 @@ main.container {
 
 /* ── Season cards ── */
 .season-card {
-  border-left: 4px solid #0d6efd;
-  transition: box-shadow 0.15s;
+  border-left: 4px solid var(--svpl-season-active);
+  transition: box-shadow 0.15s ease-in-out, border-left-color 0.15s ease-in-out;
 }
 
 .season-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 .season-card.archived {
-  border-left-color: #adb5bd;
-  opacity: 0.8;
+  border-left-color: var(--svpl-season-archived);
+  opacity: 0.7;
 }
 
 /* ── Schedule table ── */
 .round-card .card-header {
-  background-color: #212529;
+  background-color: var(--svpl-surface-raised);
   color: #fff;
+  letter-spacing: 0.04em;
 }
 
 .round-card .table td {
@@ -42,14 +58,14 @@ main.container {
 }
 
 .bye-row td {
-  color: #6c757d;
+  color: var(--svpl-muted);
   font-style: italic;
-  background-color: #f8f9fa;
+  background-color: var(--svpl-stripe);
 }
 
-/* ── Admin tabs ── */
-.tab-content {
-  padding-top: 1.25rem;
+/* ── Roster disclosure panel ── */
+.roster-panel {
+  background-color: var(--svpl-surface);
 }
 
 /* ── Utility ── */
@@ -57,6 +73,7 @@ main.container {
   cursor: pointer;
 }
 
+/* Blank out the main app when printed directly; use the Print Schedule page instead. */
 @media print {
   body * {
     visibility: hidden;

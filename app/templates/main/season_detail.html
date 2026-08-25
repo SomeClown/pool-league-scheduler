@@ -23,22 +23,22 @@
 
   <div class="d-flex gap-2 flex-wrap">
     <a href="{{ url_for('main.season_export', season_id=season.id) }}"
-       class="btn btn-outline-success">
+       class="btn btn-outline-success btn-sm">
       <i class="bi bi-file-earmark-spreadsheet me-1"></i>Export Excel
     </a>
     <a href="{{ url_for('main.season_export_csv', season_id=season.id) }}"
-       class="btn btn-outline-success">
+       class="btn btn-outline-success btn-sm">
       <i class="bi bi-filetype-csv me-1"></i>Export CSV
     </a>
     <a href="{{ url_for('main.season_print', season_id=season.id) }}"
-       class="btn btn-outline-secondary" target="_blank">
+       class="btn btn-outline-secondary btn-sm" target="_blank">
       <i class="bi bi-printer me-1"></i>Print Schedule
     </a>
     <a href="{{ url_for('main.season_compact', season_id=season.id) }}"
-       class="btn btn-outline-secondary" target="_blank">
+       class="btn btn-outline-secondary btn-sm" target="_blank">
       <i class="bi bi-grid-3x2 me-1"></i>Compact View
     </a>
-    <button type="button" id="copy-link-btn" class="btn btn-outline-secondary"
+    <button type="button" id="copy-link-btn" class="btn btn-outline-secondary btn-sm"
             onclick="copyScheduleLink()">
       <i class="bi bi-link-45deg me-1" id="copy-link-icon"></i><span id="copy-link-text">Copy Link</span>
     </button>
@@ -110,7 +110,7 @@
           <tr class="border-0">
             <td colspan="4" class="pt-0 pb-1 px-3 border-0">
               <div class="collapse" id="roster-{{ match.id }}">
-                <div class="row g-3 py-2 px-1 border-start border-3 border-secondary ms-1 small">
+                <div class="row g-3 py-2 px-1 border-start border-3 border-primary ms-1 small roster-panel">
                   <div class="col-sm-6">
                     <div class="fw-semibold mb-1">{{ match.home_team.name }}</div>
                     {% if match.home_team.players %}

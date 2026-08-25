@@ -7,7 +7,7 @@
 }
 
 body {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 11pt;
   color: #000;
   background: #fff;
@@ -48,7 +48,7 @@ body {
   background: #222;
   color: #fff;
   padding: 4pt 8pt;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 10pt;
 }
 
@@ -114,21 +114,56 @@ body {
   margin-top: 0.4in;
   padding-top: 8pt;
   border-top: 1px solid #ccc;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 9pt;
   color: #666;
   text-align: center;
 }
 
-/* ── Page breaks & print-only hiding ── */
-@media print {
-  .round-block {
-    page-break-inside: avoid;
+/* ── Screen: minimal dark preview ── */
+@media screen {
+  body {
+    background: #1a1d20;
+    color: #dee2e6;
+    padding: 1.5rem;
   }
+  .print-header {
+    border-bottom-color: #495057;
+  }
+  .print-header .subtitle {
+    color: #8d9299;
+  }
+  .round-header {
+    background: #343a40;
+    color: #f8f9fa;
+  }
+  .schedule-table tr {
+    border-bottom-color: #373b3e;
+  }
+  .schedule-table td.vs,
+  .schedule-table td.venue,
+  .bye-row td,
+  .print-footer {
+    color: #8d9299;
+  }
+  .no-print button {
+    background: #343a40;
+    color: #dee2e6;
+    border: 1px solid #495057;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 4pt 14pt;
+    font-size: 10pt;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    margin-right: 8pt;
+  }
+}
 
-  .no-print {
-    display: none !important;
-  }
+/* ── Print output: force white paper ── */
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  .round-block { page-break-inside: avoid; }
+  .no-print { display: none !important; }
 
   @page {
     margin: 0.6in 0.75in;
