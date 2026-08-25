@@ -83,7 +83,8 @@ back-end before UI polish; front-end redesign last.
 
 ### Schedule & League Management
 
-- [ ] **F-04** — Multiple league types per season. Initial set (Title Case, confirmed):
+- [x] **F-04** — Multiple league types per season. **COMPLETE (2026-08-25, commit 6d55a0a)**
+  Initial set (Title Case, confirmed):
   - Snoqualmie Valley Men's League
   - Snoqualmie Valley Women's League
   - Snoqualmie Valley Mixed Doubles League
@@ -223,6 +224,7 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 | 2026-08-25 | Planning agent audit complete; F-11 closed, execution sequence set | Planning agent |
 | 2026-08-25 | Applied all planning agent suggestions; added F-15, M-02; recorded flag answers | Master (Claude) |
 | 2026-08-25 | F-13 complete: public schedule viewing, anonymous navbar, copy-link button | Back-end + Front-end agents |
+| 2026-08-25 | F-04 complete: league types model, CRUD, admin tab, season form, display badges | Back-end + Front-end agents |
 
 ---
 
