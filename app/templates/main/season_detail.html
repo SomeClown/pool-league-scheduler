@@ -47,6 +47,10 @@
         <i class="bi bi-arrow-clockwise me-1"></i>Regenerate
       </button>
     </form>
+    <button type="button" class="btn btn-outline-warning"
+            data-bs-toggle="modal" data-bs-target="#partialRegenerateModal">
+      <i class="bi bi-arrow-clockwise me-1"></i>Partial Regenerate
+    </button>
     <form method="POST" action="{{ url_for('main.season_archive', season_id=season.id) }}"
           onsubmit="return confirm('Archive this season? It will become read-only.')">
       <button type="submit" class="btn btn-outline-secondary">
@@ -110,6 +114,38 @@
   No rounds scheduled yet.
 </div>
 {% endif %}
+
+<div class="modal fade" id="partialRegenerateModal" tabindex="-1" aria-labelledby="partialRegenerateModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="partialRegenerateModalLabel">Regenerate Remaining Schedule</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('main.season_regenerate_partial', season_id=season.id) }}">
+        <div class="modal-body">
+          <p>Select the last round to keep. All matches from the following round onward will be
+          replaced with a freshly generated schedule. Rounds you keep are locked in — their
+          dates and match assignments will not change.</p>
+          <label for="freezeRoundSelect" class="form-label">Keep rounds through:</label>
+          <select class="form-select" id="freezeRoundSelect" name="freeze_through_round" required>
+            {% for round_num, round_data in rounds.items() %}
+            {% if not loop.last %}
+            <option value="{{ round_num }}">Round {{ round_num }} — {{ round_data.date.strftime('%b %-d') }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+          <div class="form-text">The selected round and all earlier rounds will be preserved exactly as-is.</div>
+          <p class="text-muted small mt-2 mb-0">This cannot be undone. The regenerated portion may differ from the current schedule.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning">Regenerate from Next Round</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <script>
 function copyScheduleLink() {

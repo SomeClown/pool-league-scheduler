@@ -44,7 +44,9 @@ MAX_HOME_AWAY_STREAK = 3
 # Public entry point
 # ---------------------------------------------------------------------------
 
-def generate_schedule(season, teams, bars, num_rounds=None):
+def generate_schedule(season, teams, bars, num_rounds=None,
+                      initial_history=None, initial_streaks=None,
+                      start_date_override=None):
     """
     Generate a complete schedule for a season and return it as a list of rounds.
 
@@ -61,6 +63,17 @@ def generate_schedule(season, teams, bars, num_rounds=None):
         num_rounds: Number of rounds to generate. If None, exactly one full
                     round-robin cycle is produced. If larger than one cycle,
                     additional cycles are generated until the count is met.
+        initial_history: Optional dict of frozenset({t1.id, t2.id}) → last home
+                         team id, used to pre-seed matchup history when
+                         regenerating from a mid-season checkpoint. If None,
+                         history starts empty (default behavior).
+        initial_streaks: Optional dict of team.id → signed streak int
+                         (+home / -away), used to pre-seed streak state. If
+                         None, all streaks start at zero.
+        start_date_override: Optional datetime.date passed through to
+                             _map_to_dates(). When provided, generated rounds
+                             begin on this date rather than season.start_date.
+                             Used for mid-season regeneration.
 
     Returns:
         List of round dicts:
@@ -94,13 +107,13 @@ def generate_schedule(season, teams, bars, num_rounds=None):
     # matchup_history tracks the last home team for each pair, so we can
     # flip home/away assignments when teams meet again in a later cycle.
     # Key: frozenset({team_a.id, team_b.id}), Value: last home team's id.
-    matchup_history = {}
+    matchup_history = dict(initial_history) if initial_history else {}
 
     # team_streaks tracks each team's current run of consecutive home or away
     # games as a signed int: +3 = three home games in a row, -2 = two away
     # games in a row. A bye leaves the streak untouched (it's neither).
     # Key: team.id, Value: signed streak length.
-    team_streaks = {}
+    team_streaks = dict(initial_streaks) if initial_streaks else {}
 
     assigned_rounds = []
     for r in all_rounds:
@@ -115,7 +128,7 @@ def generate_schedule(season, teams, bars, num_rounds=None):
             team_streaks[away.id] = s - 1 if s < 0 else -1
         assigned_rounds.append({'matches': assigned, 'bye': r['bye']})
 
-    return _map_to_dates(assigned_rounds, season)
+    return _map_to_dates(assigned_rounds, season, start_date_override=start_date_override)
 
 
 # ---------------------------------------------------------------------------
@@ -347,7 +360,7 @@ _FREQUENCY_DELTA = {
 }
 
 
-def _map_to_dates(rounds, season):
+def _map_to_dates(rounds, season, start_date_override=None):
     """
     Assign a calendar date to each round, skipping blackout dates.
 
@@ -362,13 +375,17 @@ def _map_to_dates(rounds, season):
     Args:
         rounds: List of round dicts from _assign_home_away (no dates yet).
         season: Season instance with .start_date, .frequency, .blackout_dates.
+        start_date_override: Optional datetime.date. When provided, the calendar
+                             walk begins here instead of season.start_date. Used
+                             by the partial-regeneration route to continue
+                             scheduling from where the frozen rounds left off.
 
     Returns:
         List of round dicts with 'round_num' and 'date' added.
     """
     blackouts    = {bd.date for bd in season.blackout_dates}
     delta        = _FREQUENCY_DELTA.get(season.frequency, timedelta(weeks=1))
-    current_date = season.start_date
+    current_date = start_date_override if start_date_override is not None else season.start_date
     scheduled    = []
 
     for i, round_data in enumerate(rounds):

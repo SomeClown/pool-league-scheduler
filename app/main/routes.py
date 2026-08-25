@@ -176,6 +176,53 @@ def _persist_schedule(schedule, season):
             ))
 
 
+def _reconstruct_state(season, freeze_through_round):
+    """
+    Reconstruct matchup history and team streaks from frozen match records.
+
+    Reads all Match rows for this season up to and including freeze_through_round,
+    then replays them in round order to produce the matchup_history and team_streaks
+    dicts that generate_schedule() needs to continue correctly from that point.
+
+    Also returns frozen_dates: the set of calendar dates used by frozen rounds,
+    so the caller can compute where the regenerated portion should start.
+
+    Args:
+        season:               Season instance.
+        freeze_through_round: int — the last round number to treat as frozen.
+
+    Returns:
+        (matchup_history, team_streaks, frozen_dates)
+        matchup_history: dict of frozenset({t1.id, t2.id}) → last home team id
+        team_streaks:    dict of team.id → signed streak (+ home, - away)
+        frozen_dates:    set of datetime.date objects used by frozen rounds
+    """
+    from app.models import Match
+
+    frozen_matches = (Match.query
+                      .filter_by(season_id=season.id)
+                      .filter(Match.round_num <= freeze_through_round)
+                      .order_by(Match.round_num)
+                      .all())
+
+    matchup_history = {}
+    team_streaks    = {}
+    frozen_dates    = set()
+
+    for match in frozen_matches:
+        frozen_dates.add(match.date)
+        key = frozenset({match.home_team_id, match.away_team_id})
+        matchup_history[key] = match.home_team_id
+
+        # Mirror the streak update logic from generate_schedule() exactly.
+        s = team_streaks.get(match.home_team_id, 0)
+        team_streaks[match.home_team_id] = s + 1 if s > 0 else 1
+        s = team_streaks.get(match.away_team_id, 0)
+        team_streaks[match.away_team_id] = s - 1 if s < 0 else -1
+
+    return matchup_history, team_streaks, frozen_dates
+
+
 # ---------------------------------------------------------------------------
 # Season routes
 # ---------------------------------------------------------------------------
@@ -456,6 +503,110 @@ def season_regenerate(season_id):
     db.session.commit()
     flash('Schedule regenerated successfully.', 'success')
     return redirect(url_for('main.season_detail', season_id=season_id))
+
+
+@bp.route('/seasons/<int:season_id>/regenerate-partial', methods=['POST'])
+@login_required
+@admin_required
+def season_regenerate_partial(season_id):
+    """
+    Re-run the scheduling algorithm for the tail of a season, leaving earlier
+    rounds untouched.
+
+    freeze_through_round (from the POST form) is the last round number whose
+    matches are kept exactly as they are. All Match and Bye records for rounds
+    after that point are deleted, and the scheduler generates fresh assignments
+    starting from the next calendar date.
+
+    The frozen rounds' matchup history and team streaks are reconstructed from
+    the database before calling generate_schedule(), so the new tail is
+    continuity-aware: it respects home/away alternation from the frozen portion
+    and avoids running up streaks that were already in progress.
+
+    Frozen rounds' match records and dates are completely untouched — only
+    rounds strictly greater than freeze_through_round are affected.
+
+    Archived seasons cannot be partially regenerated.
+    """
+    from sqlalchemy import text
+
+    season = Season.query.get_or_404(season_id)
+
+    if season.status != 'active':
+        flash('Only active seasons can be partially regenerated.', 'danger')
+        return redirect(url_for('main.season_detail', season_id=season_id))
+
+    freeze_through_round = request.form.get('freeze_through_round', type=int)
+    if freeze_through_round is None or freeze_through_round < 1:
+        flash('Invalid round number.', 'danger')
+        return redirect(url_for('main.season_detail', season_id=season_id))
+
+    rounds       = _build_rounds(season)
+    total_rounds = len(rounds)
+    if freeze_through_round >= total_rounds:
+        flash('Freeze round must be less than the total number of rounds.', 'danger')
+        return redirect(url_for('main.season_detail', season_id=season_id))
+
+    matchup_history, team_streaks, frozen_dates = _reconstruct_state(season, freeze_through_round)
+
+    freq_delta          = timedelta(weeks=2) if season.frequency == 'biweekly' else timedelta(weeks=1)
+    freeze_date         = rounds[freeze_through_round]['date']
+    start_date_override = freeze_date + freq_delta
+
+    blackout_set = {bd.date for bd in season.blackout_dates}
+    while start_date_override in blackout_set:
+        start_date_override += freq_delta
+
+    remaining_rounds = total_rounds - freeze_through_round
+
+    bars = list({team.bar for team in season.teams})
+
+    try:
+        db.session.execute(
+            text('DELETE FROM matches WHERE season_id = :sid AND round_num > :rnum'),
+            {'sid': season.id, 'rnum': freeze_through_round}
+        )
+        db.session.execute(
+            text('DELETE FROM byes WHERE season_id = :sid AND round_num > :rnum'),
+            {'sid': season.id, 'rnum': freeze_through_round}
+        )
+        db.session.flush()
+
+        schedule = generate_schedule(
+            season, season.teams, bars,
+            num_rounds=remaining_rounds,
+            initial_history=matchup_history,
+            initial_streaks=team_streaks,
+            start_date_override=start_date_override,
+        )
+
+        for round_data in schedule:
+            offset_round_num = freeze_through_round + round_data['round_num']
+            for home_team, away_team, bar_id in round_data['matches']:
+                db.session.add(Match(
+                    season_id    = season.id,
+                    round_num    = offset_round_num,
+                    date         = round_data['date'],
+                    home_team_id = home_team.id,
+                    away_team_id = away_team.id,
+                    bar_id       = bar_id,
+                ))
+            if round_data['bye']:
+                db.session.add(Bye(
+                    season_id = season.id,
+                    round_num = offset_round_num,
+                    date      = round_data['date'],
+                    team_id   = round_data['bye'].id,
+                ))
+
+        db.session.commit()
+        flash(f'Schedule regenerated from round {freeze_through_round + 1} onward.', 'success')
+        return redirect(url_for('main.season_detail', season_id=season_id))
+
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred while regenerating the schedule. No changes were saved.', 'danger')
+        return redirect(url_for('main.season_detail', season_id=season_id))
 
 
 @bp.route('/seasons/<int:season_id>/archive', methods=['POST'])
