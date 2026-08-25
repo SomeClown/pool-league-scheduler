@@ -155,9 +155,9 @@ back-end before UI polish; front-end redesign last.
     many-to-many — needs design decision: can a player be on more than one team?).
   - On the public schedule view, a button per team (or per match) opens a list of players
     currently rostered on that team. Matches the existing collapsible roster panel pattern.
-  - **Requires design session before implementation** — data model change is a breaking
-    migration (current `Player.team_id NOT NULL` becomes a join table or nullable FK).
-    Decide: (a) one active team per player at a time, or (b) players on multiple teams.
+  - **Design decision recorded:** players can be on multiple teams simultaneously.
+    Data model: many-to-many join table `player_teams` (replaces current `Player.team_id NOT NULL`).
+    Requires a breaking migration — drop the FK column, add the join table, migrate existing data.
   - Note: F-14 UI patterns (collapse panels, roster rows in schedule) can be reused; only
     the data model and admin CRUD need significant rework.
 
