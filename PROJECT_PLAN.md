@@ -125,6 +125,18 @@ unless otherwise directed.
 
 ---
 
+## Meta / Tooling
+
+These are not application features — they are improvements to the development workflow itself.
+
+- [ ] **M-01** — Custom investigation agent (`.claude/agents/investigate.md`): a reusable
+  read-only agent that onboards Claude to any codebase from cold — reads key files end-to-end,
+  produces a structured summary (architecture, data flow, coupling points, gotchas), and flags
+  at-risk areas before changes begin. Useful for new projects and new sessions starting without
+  context. Build when starting a second project or after a session where cold-start cost is felt.
+
+---
+
 ## Notes
 
 - Mid-schedule regeneration (F-09) is the most complex new back-end feature.
