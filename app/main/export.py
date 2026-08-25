@@ -445,3 +445,51 @@ def build_season_excel(season, rounds):
     wb.save(output)
     output.seek(0)
     return output
+
+
+def build_season_csv(season, rounds):
+    """
+    Build a CSV export of the season schedule and return it as a StringIO.
+
+    Columns: Week, Date, Home #, Home Team, Away #, Away Team, Bar.
+    One row per match. Bye rounds get a single row with Home Team = "BYE",
+    Away Team = the bye team's display_name, other match fields blank.
+    Returns the StringIO seeked to position 0, ready for send_file().
+
+    Args:
+        season: Season model instance (used for the filename — not needed here,
+                but kept for API symmetry with build_season_excel).
+        rounds: Ordered dict of round_num → {matches: [...], bye: Bye|None, date: date}
+                as returned by _build_rounds().
+    """
+    import csv
+    import io
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(['Week', 'Date', 'Home #', 'Home Team', 'Away #', 'Away Team', 'Bar'])
+
+    for round_num, round_data in rounds.items():
+        date_str = round_data['date'].strftime('%Y-%m-%d')
+        for match in round_data['matches']:
+            writer.writerow([
+                round_num,
+                date_str,
+                match.home_team.number if match.home_team.number is not None else '',
+                match.home_team.name,
+                match.away_team.number if match.away_team.number is not None else '',
+                match.away_team.name,
+                match.bar.name if match.bar else '',
+            ])
+        if round_data['bye']:
+            writer.writerow([
+                round_num,
+                date_str,
+                '', 'BYE',
+                '', round_data['bye'].team.display_name,
+                '',
+            ])
+
+    output.seek(0)
+    return output

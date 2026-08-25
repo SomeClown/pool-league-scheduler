@@ -24,6 +24,7 @@ Route structure at a glance:
     /account/password            → change your own password
 """
 
+import io
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -465,6 +466,29 @@ def season_export(season_id):
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         as_attachment=True,
         download_name=filename,
+    )
+
+
+@bp.route('/seasons/<int:season_id>/export/csv')
+def season_export_csv(season_id):
+    """
+    Download the season schedule as a CSV file.
+
+    Public route — no login required. Calls build_season_csv() and streams
+    the result as a text/csv attachment. Filename is derived from the season name.
+    """
+    season = Season.query.get_or_404(season_id)
+    rounds = _build_rounds(season)
+
+    from app.main.export import build_season_csv
+    csv_file = build_season_csv(season, rounds)
+
+    safe_name = season.name.replace(' ', '_').replace('/', '-')
+    return send_file(
+        io.BytesIO(csv_file.read().encode('utf-8')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=f'{safe_name}_Schedule.csv',
     )
 
 
