@@ -129,7 +129,7 @@ back-end before UI polish; front-end redesign last.
     explicitly labels convention), `season_print.html` (`class="team home"` /
     `class="team away"`), and `export.py` ("Home #" / "Home Team" columns).
 
-- [ ] **F-15** — Post-creation blackout date management.
+- [x] **F-15** — Post-creation blackout date management. **COMPLETE (2026-08-25, commit dbf414f)**
   - Admins must be able to add, edit, or remove blackout dates after a season has been
     created (currently only supported at creation time).
   - Adding or removing a blackout date that falls within the remaining schedule must
@@ -226,6 +226,7 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 | 2026-08-25 | F-13 complete: public schedule viewing, anonymous navbar, copy-link button | Back-end + Front-end agents |
 | 2026-08-25 | F-04 complete: league types model, CRUD, admin tab, season form, display badges | Back-end + Front-end agents |
 | 2026-08-25 | F-09 complete: mid-season partial regeneration with state reconstruction | Back-end + Front-end agents |
+| 2026-08-25 | F-15 complete: post-creation blackout date add/remove with full date remapping | Back-end + Front-end agents |
 
 ---
 
