@@ -58,15 +58,13 @@ back-end before UI polish; front-end redesign last.
 
 ### UI / UX & Platform
 
-- [ ] **F-01** — Dark-mode theme redesign.
+- [x] **F-01** — Dark-mode theme redesign. **COMPLETE (2026-08-25, commit d3ed532)**
   - Font: Inter (via Google Fonts). Permanent dark mode — no light/dark toggle needed.
-  - "Radial buttons" = styled radio button groups (Bootstrap button-group pattern),
-    only where contextually appropriate — UI/UX agent makes final call per control.
-  - "Sliders" = general modern UI sensibility, not a literal `<input type="range">`
-    requirement. Keep controls appropriate to their context.
-  - Implementation note: add `data-bs-theme="dark"` to `<html>`, establish CSS custom
-    property system in `app.css`, apply to all templates including the two standalone
-    ones (`season_compact.html`, `season_print.html`).
+  - `data-bs-theme="dark"` on `<html>`; CSS custom property token system in `app.css`;
+    applied to all templates including standalone `season_compact.html` / `season_print.html`.
+  - Frequency and length-mode selects replaced with Bootstrap btn-group radio groups.
+  - Web Interface Guidelines review pass completed (commit e2f39dd): color-scheme, theme-color
+    meta, prefers-reduced-motion guard, aria-label/aria-hidden, autocomplete attributes.
 
 - [ ] **F-02** — Full desktop + mobile optimization (responsive at all breakpoints,
   touch-friendly controls, 44px minimum touch targets).
@@ -102,10 +100,11 @@ back-end before UI polish; front-end redesign last.
     planned. Schedule this session before implementing F-09, since constraint changes
     may affect the mid-season regeneration algorithm's state reconstruction logic.
 
-- [~] **F-07** — Export schedules.
-  - [x] Excel export (implemented — `app/main/export.py`)
-  - [x] CSV export: `build_season_csv()` in `export.py`, public `/seasons/<id>/export/csv`
-    route, and Export CSV button in season detail. **COMPLETE (2026-08-25, commit a1b36fb)**
+- [x] **F-07** — Export schedules. **COMPLETE (2026-08-25)**
+  - Excel export: `app/main/export.py`, colored home/away columns, week groupings, bold borders,
+    Home Players / Away Players columns (added with F-14, commit 5c5fff9).
+  - CSV export: `build_season_csv()` in `export.py`, UTF-8 BOM for Excel compatibility,
+    public `/seasons/<id>/export/csv` route. (commit a1b36fb)
 
 - [x] **F-08** — Regenerate schedule (full season).
 
@@ -142,16 +141,12 @@ back-end before UI polish; front-end redesign last.
 
 ### Players & Rosters
 
-- [ ] **F-14** — Player roster per team.
-  - Player names are **publicly visible** (no auth guard on the schedule views).
-  - Player fields: **name** (required), **email** (optional), **phone** (optional).
-    Adding these now is cheaper than a future migration.
-  - Implementation note: new `Player` model (new table — `db.create_all()` handles
-    creation). The `Team.players` relationship requires `cascade='all, delete-orphan'`
-    so players are removed when a team is deleted. Admin UI via Bootstrap collapse
-    panels in the Teams tab. Schedule views show roster via collapsible rows per match.
-    Excel export gains two columns (Home Players, Away Players) — `_SCHED_COLS`
-    constant in `export.py` changes from 7 to 9; update all references carefully.
+- [x] **F-14** — Player roster per team. **COMPLETE (2026-08-25, commit 5c5fff9)**
+  - Player fields: name (required), email (optional), phone (optional). Publicly visible.
+  - `Player` model, `Team.players` relationship with `cascade='all, delete-orphan'`.
+  - Admin CRUD via Bootstrap collapse panels in the Teams tab; edit modal for existing players.
+  - Schedule detail shows collapsible roster rows per match (btn-link toggle, border-primary panel).
+  - Excel export extended to 9 columns (Home Players / Away Players added).
 
 ---
 
@@ -227,6 +222,9 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 | 2026-08-25 | F-09 complete: mid-season partial regeneration with state reconstruction | Back-end + Front-end agents |
 | 2026-08-25 | F-15 complete: post-creation blackout date add/remove with full date remapping | Back-end + Front-end agents |
 | 2026-08-25 | F-07 complete: CSV export route and button alongside existing Excel export | Back-end + Front-end agents |
+| 2026-08-25 | F-14 complete: Player model, admin CRUD, schedule roster disclosure, Excel columns | Back-end + Front-end agents |
+| 2026-08-25 | F-01 complete: dark mode, Inter font, token system, btn-group radios, guidelines pass | Front-end agent |
+| 2026-08-25 | M-02 complete: UI/UX agent definition written | Master (Claude) |
 
 ---
 
@@ -243,10 +241,8 @@ These are not application features — they are improvements to the development 
     cold consumes significant token budget. An investigation agent could front-load this
     work once and cache the summary.
 
-- [ ] **M-02** — UI/UX agent (`.claude/agents/uiux.md`): a read-only advisory agent
-  that makes visual design decisions — control type selection (button groups vs. radios
-  vs. dropdowns), spacing, hierarchy, color application — before handing specs to the
-  front-end agent. Required before F-01 (dark mode redesign) begins.
+- [x] **M-02** — UI/UX agent (`.claude/agents/uiux.md`). **COMPLETE (2026-08-25)**
+  - Read-only advisory agent for visual design decisions. Consulted during F-01 planning.
 
 ---
 
