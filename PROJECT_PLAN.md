@@ -110,7 +110,7 @@ back-end before UI polish; front-end redesign last.
 
 - [x] **F-08** — Regenerate schedule (full season).
 
-- [ ] **F-09** — Regenerate remaining schedule mid-season: re-run the scheduler from
+- [x] **F-09** — Regenerate remaining schedule mid-season. **COMPLETE (2026-08-25, commit 23f7311)**: re-run the scheduler from
   a specified round forward, leaving all prior rounds and their dates unchanged.
   - Freeze-round selection UI: **dropdown** showing "Round N — Date" (not a text input).
   - Implementation note: requires two additive, backward-compatible changes to
@@ -225,6 +225,7 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 | 2026-08-25 | Applied all planning agent suggestions; added F-15, M-02; recorded flag answers | Master (Claude) |
 | 2026-08-25 | F-13 complete: public schedule viewing, anonymous navbar, copy-link button | Back-end + Front-end agents |
 | 2026-08-25 | F-04 complete: league types model, CRUD, admin tab, season form, display badges | Back-end + Front-end agents |
+| 2026-08-25 | F-09 complete: mid-season partial regeneration with state reconstruction | Back-end + Front-end agents |
 
 ---
 
