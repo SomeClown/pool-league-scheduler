@@ -104,9 +104,8 @@ back-end before UI polish; front-end redesign last.
 
 - [~] **F-07** — Export schedules.
   - [x] Excel export (implemented — `app/main/export.py`)
-  - [ ] CSV export: add `build_season_csv()` to `export.py` (uses stdlib `csv` module,
-    no new dependency) and a `/seasons/<id>/export/csv` route. Both Excel and CSV
-    downloads are **public** (no login required, same as HTML schedule views).
+  - [x] CSV export: `build_season_csv()` in `export.py`, public `/seasons/<id>/export/csv`
+    route, and Export CSV button in season detail. **COMPLETE (2026-08-25, commit a1b36fb)**
 
 - [x] **F-08** — Regenerate schedule (full season).
 
@@ -227,6 +226,7 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 | 2026-08-25 | F-04 complete: league types model, CRUD, admin tab, season form, display badges | Back-end + Front-end agents |
 | 2026-08-25 | F-09 complete: mid-season partial regeneration with state reconstruction | Back-end + Front-end agents |
 | 2026-08-25 | F-15 complete: post-creation blackout date add/remove with full date remapping | Back-end + Front-end agents |
+| 2026-08-25 | F-07 complete: CSV export route and button alongside existing Excel export | Back-end + Front-end agents |
 
 ---
 
