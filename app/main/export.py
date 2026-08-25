@@ -101,10 +101,11 @@ def _outline_range(ws, r1, r2, c1, c2):
 
 # ---------------------------------------------------------------------------
 # Sheet 1 — Schedule
-# Column layout: A=Wk  B=Date  C=Home#  D=Home Team  E=Away#  F=Away Team  G=Bar
+# Column layout: A=Wk  B=Date  C=Home#  D=Home Team  E=Away#  F=Away Team
+#                G=Bar  H=Home Players  I=Away Players
 # ---------------------------------------------------------------------------
 
-_SCHED_COLS = 7   # Total columns in the schedule sheet.
+_SCHED_COLS = 9   # Total columns in the schedule sheet.
 
 
 def _sched_header_cell(ws, row, col, value, bg, align_h="left"):
@@ -178,13 +179,15 @@ def _build_schedule_sheet(ws, season, rounds):
     # bar = forest green, week/date = navy. This gives you an immediate visual
     # cue about which columns belong to which team without reading the labels.
     hdr_defs = [
-        ("Wk",        BG_HDR_MAIN, "center"),
-        ("Date",      BG_HDR_MAIN, "center"),
-        ("Home #",    BG_HDR_HOME, "center"),
-        ("Home Team", BG_HDR_HOME, "left"),
-        ("Away #",    BG_HDR_AWAY, "center"),
-        ("Away Team", BG_HDR_AWAY, "left"),
-        ("Bar",       BG_HDR_BAR,  "left"),
+        ("Wk",           BG_HDR_MAIN, "center"),
+        ("Date",         BG_HDR_MAIN, "center"),
+        ("Home #",       BG_HDR_HOME, "center"),
+        ("Home Team",    BG_HDR_HOME, "left"),
+        ("Away #",       BG_HDR_AWAY, "center"),
+        ("Away Team",    BG_HDR_AWAY, "left"),
+        ("Bar",          BG_HDR_BAR,  "left"),
+        ("Home Players", BG_HDR_HOME, "left"),
+        ("Away Players", BG_HDR_AWAY, "left"),
     ]
     for col, (label, bg, align_h) in enumerate(hdr_defs, start=1):
         _sched_header_cell(ws, 3, col, label, bg, align_h)
@@ -226,6 +229,10 @@ def _build_schedule_sheet(ws, season, rounds):
             _rc(6, away.name if away else "", size=11)
             _rc(7, match.bar.name if match.bar else "",
                 italic=True, color=FG_MUTED, size=10)
+            home_players = ", ".join(p.name for p in home.players) if home and home.players else ""
+            away_players = ", ".join(p.name for p in away.players) if away and away.players else ""
+            _rc(8, home_players, size=10, color=FG_MUTED)
+            _rc(9, away_players, size=10, color=FG_MUTED)
 
             ws.row_dimensions[cur_row].height = 18
             cur_row += 1
@@ -261,7 +268,7 @@ def _build_schedule_sheet(ws, season, rounds):
         _outline_range(ws, group_start, cur_row - 1, 1, _SCHED_COLS)
 
     # ── Column widths ─────────────────────────────────────────────────────────
-    for col, width in enumerate([5, 10, 7, 24, 7, 24, 22], start=1):
+    for col, width in enumerate([5, 10, 7, 24, 7, 24, 22, 30, 30], start=1):
         ws.column_dimensions[get_column_letter(col)].width = width
 
     # Freeze title + header rows so they stay visible while scrolling.

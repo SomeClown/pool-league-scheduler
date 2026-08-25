@@ -33,7 +33,7 @@ from flask_login import login_required, current_user
 
 from app import db
 from app.main import bp
-from app.models import Bar, BlackoutDate, Bye, LeagueType, Match, Season, SeasonBarCap, Team, User
+from app.models import Bar, BlackoutDate, Bye, LeagueType, Match, Player, Season, SeasonBarCap, Team, User
 from app.scheduler.algorithm import generate_schedule
 
 
@@ -1122,6 +1122,59 @@ def league_type_delete(lt_id):
         db.session.commit()
         flash(f'"{lt.name}" deleted.', 'success')
     return redirect(url_for('main.admin') + '#league-types')
+
+
+# ---------------------------------------------------------------------------
+# Player admin routes
+# ---------------------------------------------------------------------------
+
+@bp.route('/admin/teams/<int:team_id>/players/add', methods=['POST'])
+@login_required
+@admin_required
+def player_add(team_id):
+    """Add a player to a team's roster."""
+    team = Team.query.get_or_404(team_id)
+    name = request.form.get('name', '').strip()
+    if not name:
+        flash('Player name is required.', 'danger')
+    else:
+        email = request.form.get('email', '').strip() or None
+        phone = request.form.get('phone', '').strip() or None
+        db.session.add(Player(name=name, email=email, phone=phone, team_id=team.id))
+        db.session.commit()
+        flash(f'"{name}" added to {team.name}.', 'success')
+    return redirect(url_for('main.admin') + '#teams')
+
+
+@bp.route('/admin/players/<int:player_id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def player_edit(player_id):
+    """Update a player's name, email, and phone."""
+    player = Player.query.get_or_404(player_id)
+    name   = request.form.get('name', '').strip()
+    if not name:
+        flash('Player name is required.', 'danger')
+    else:
+        player.name  = name
+        player.email = request.form.get('email', '').strip() or None
+        player.phone = request.form.get('phone', '').strip() or None
+        db.session.commit()
+        flash(f'"{name}" updated.', 'success')
+    return redirect(url_for('main.admin') + '#teams')
+
+
+@bp.route('/admin/players/<int:player_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def player_delete(player_id):
+    """Remove a player from a team's roster."""
+    player = Player.query.get_or_404(player_id)
+    name   = player.name
+    db.session.delete(player)
+    db.session.commit()
+    flash(f'"{name}" removed.', 'success')
+    return redirect(url_for('main.admin') + '#teams')
 
 
 @bp.route('/admin/clear-schedules', methods=['POST'])

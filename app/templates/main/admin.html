@@ -116,6 +116,13 @@
             </td>
             <td class="text-muted d-none d-sm-table-cell">{{ team.bar.name }}</td>
             <td class="text-end">
+              <button class="btn btn-sm btn-outline-info me-1"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#team-players-{{ team.id }}"
+                      aria-expanded="false"
+                      title="Manage players">
+                <i class="bi bi-people me-1"></i>{{ team.players | length }}
+              </button>
               <button class="btn btn-sm btn-outline-secondary me-1"
                       data-bs-toggle="modal" data-bs-target="#editTeamModal"
                       data-id="{{ team.id }}"
@@ -129,6 +136,72 @@
                     onsubmit="return confirm('Delete ' + {{ team.name | tojson }} + '?')">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
               </form>
+            </td>
+          </tr>
+          <tr class="border-0">
+            <td colspan="4" class="p-0 border-0">
+              <div class="collapse" id="team-players-{{ team.id }}">
+                <div class="px-3 pt-2 pb-3 bg-light border-bottom">
+                  {% if team.players %}
+                  <table class="table table-sm mb-2">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Name</th>
+                        <th class="d-none d-sm-table-cell">Email</th>
+                        <th class="d-none d-md-table-cell">Phone</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for player in team.players %}
+                      <tr>
+                        <td>{{ player.name }}</td>
+                        <td class="text-muted small d-none d-sm-table-cell">{{ player.email or '—' }}</td>
+                        <td class="text-muted small d-none d-md-table-cell">{{ player.phone or '—' }}</td>
+                        <td class="text-end">
+                          <button class="btn btn-sm btn-outline-secondary me-1"
+                                  data-bs-toggle="modal" data-bs-target="#editPlayerModal"
+                                  data-player-id="{{ player.id }}"
+                                  data-name="{{ player.name }}"
+                                  data-email="{{ player.email or '' }}"
+                                  data-phone="{{ player.phone or '' }}">
+                            Edit
+                          </button>
+                          <form method="POST" action="{{ url_for('main.player_delete', player_id=player.id) }}"
+                                class="d-inline"
+                                onsubmit="return confirm('Remove ' + {{ player.name | tojson }} + '?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                          </form>
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                  {% else %}
+                  <p class="text-muted small mb-2">No players yet.</p>
+                  {% endif %}
+                  <form method="POST" action="{{ url_for('main.player_add', team_id=team.id) }}"
+                        class="row g-2 align-items-end">
+                    <div class="col-sm-4">
+                      <input type="text" name="name" class="form-control form-control-sm"
+                             placeholder="Name *" required>
+                    </div>
+                    <div class="col-sm-4">
+                      <input type="email" name="email" class="form-control form-control-sm"
+                             placeholder="Email (optional)">
+                    </div>
+                    <div class="col-sm-3">
+                      <input type="tel" name="phone" class="form-control form-control-sm"
+                             placeholder="Phone (optional)">
+                    </div>
+                    <div class="col-sm-1">
+                      <button type="submit" class="btn btn-sm btn-primary w-100">
+                        <i class="bi bi-plus-lg"></i>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -539,6 +612,38 @@
   </div>
 </div>
 
+<!-- Edit Player -->
+<div class="modal fade" id="editPlayerModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <form method="POST" id="editPlayerForm" action="">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Player</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" id="editPlayerName" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" id="editPlayerEmail" class="form-control">
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Phone</label>
+            <input type="tel" name="phone" id="editPlayerPhone" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- Edit League Type -->
 <div class="modal fade" id="editLeagueTypeModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
@@ -639,6 +744,15 @@
     document.getElementById('editLeagueTypeName').value = btn.dataset.name;
     document.getElementById('editLeagueTypeSortOrder').value = btn.dataset.sortOrder || '';
     document.getElementById('editLeagueTypeForm').action = '/admin/league-types/' + btn.dataset.ltId + '/edit';
+  });
+
+  // Populate Edit Player modal
+  document.getElementById('editPlayerModal').addEventListener('show.bs.modal', function (e) {
+    const btn = e.relatedTarget;
+    document.getElementById('editPlayerName').value  = btn.dataset.name;
+    document.getElementById('editPlayerEmail').value = btn.dataset.email;
+    document.getElementById('editPlayerPhone').value = btn.dataset.phone;
+    document.getElementById('editPlayerForm').action = '/admin/players/' + btn.dataset.playerId + '/edit';
   });
 </script>
 {% endblock %}

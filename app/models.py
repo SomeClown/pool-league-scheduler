@@ -149,6 +149,9 @@ class Team(db.Model):
     name   = db.Column(db.String(100), nullable=False, unique=True)
     bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=False)
 
+    players = db.relationship('Player', backref='team', cascade='all, delete-orphan',
+                              lazy=True, order_by='Player.name')
+
     @property
     def display_name(self):
         """
@@ -162,6 +165,27 @@ class Team(db.Model):
 
     def __repr__(self):
         return f'<Team {self.name}>'
+
+
+class Player(db.Model):
+    """
+    An individual player on a team's roster.
+
+    Players are publicly visible — no auth guard on schedule views. Name is
+    required; email and phone are optional contact fields. Cascade deletion
+    is set on Team.players so deleting a team also removes all its players.
+    """
+
+    __tablename__ = 'players'
+
+    id      = db.Column(db.Integer, primary_key=True)
+    name    = db.Column(db.String(100), nullable=False)
+    email   = db.Column(db.String(200), nullable=True)
+    phone   = db.Column(db.String(50),  nullable=True)
+    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
+
+    def __repr__(self):
+        return f'<Player {self.name}>'
 
 
 # Association table for the many-to-many relationship between seasons and teams.

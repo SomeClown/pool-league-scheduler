@@ -83,8 +83,18 @@
         </thead>
         <tbody>
           {% for match in round_data.matches %}
+          {% set has_roster = match.home_team.players or match.away_team.players %}
           <tr>
             <td class="ps-3">
+              {% if has_roster %}
+              <button class="btn btn-link btn-sm p-0 me-1 text-muted"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#roster-{{ match.id }}"
+                      aria-expanded="false"
+                      title="Show rosters">
+                <i class="bi bi-people"></i>
+              </button>
+              {% endif %}
               <span class="team-home">{{ match.home_team.display_name }}</span>
               {# On xs screens, stack away team and bar below home team #}
               <div class="d-sm-none text-muted small mt-1">
@@ -96,6 +106,40 @@
             <td class="d-none d-sm-table-cell">{{ match.away_team.display_name }}</td>
             <td class="text-end pe-3 text-muted small d-none d-md-table-cell">{{ match.bar.name }}</td>
           </tr>
+          {% if has_roster %}
+          <tr class="border-0">
+            <td colspan="4" class="pt-0 pb-1 px-3 border-0">
+              <div class="collapse" id="roster-{{ match.id }}">
+                <div class="row g-3 py-2 px-1 border-start border-3 border-secondary ms-1 small">
+                  <div class="col-sm-6">
+                    <div class="fw-semibold mb-1">{{ match.home_team.name }}</div>
+                    {% if match.home_team.players %}
+                    <ul class="list-unstyled mb-0">
+                      {% for p in match.home_team.players %}
+                      <li class="text-muted">{{ p.name }}</li>
+                      {% endfor %}
+                    </ul>
+                    {% else %}
+                    <span class="text-muted fst-italic">No players listed</span>
+                    {% endif %}
+                  </div>
+                  <div class="col-sm-6">
+                    <div class="fw-semibold mb-1">{{ match.away_team.name }}</div>
+                    {% if match.away_team.players %}
+                    <ul class="list-unstyled mb-0">
+                      {% for p in match.away_team.players %}
+                      <li class="text-muted">{{ p.name }}</li>
+                      {% endfor %}
+                    </ul>
+                    {% else %}
+                    <span class="text-muted fst-italic">No players listed</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endif %}
           {% endfor %}
           {% if round_data.bye %}
           <tr class="bye-row">
