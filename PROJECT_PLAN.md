@@ -122,11 +122,11 @@ back-end before UI polish; front-end redesign last.
 - [x] **F-10** — Team numbers displayed in schedule views.
 
 - [x] **F-11** — Home team listed first in all schedule views.
-  - **Audit complete (planning session, 2026-08-25) — no code changes needed.**
-    All four output paths confirmed correct: `season_detail.html` (Home/Away column
-    headers), `season_compact.html` (h × a notation, subtitle explicitly labels
-    convention), `season_print.html` (`class="team home"` / `class="team away"`),
-    and `export.py` ("Home #" / "Home Team" columns).
+  - **COMPLETE — audit performed during planning session (2026-08-25), no code
+    changes needed.** All four output paths confirmed correct: `season_detail.html`
+    (Home/Away column headers), `season_compact.html` (h × a notation, subtitle
+    explicitly labels convention), `season_print.html` (`class="team home"` /
+    `class="team away"`), and `export.py` ("Home #" / "Home Team" columns).
 
 - [ ] **F-15** — Post-creation blackout date management.
   - Admins must be able to add, edit, or remove blackout dates after a season has been
