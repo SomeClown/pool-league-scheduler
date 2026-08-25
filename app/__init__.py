@@ -145,6 +145,8 @@ def _register_cli(app):
             # (WHERE IS NULL), so re-running this migration is harmless.
             ("bars",    "tables_in_use (backfill)",
              "UPDATE bars SET tables_in_use = tables WHERE tables_in_use IS NULL"),
+            ("seasons", "league_type_id",
+             "ALTER TABLE seasons ADD COLUMN league_type_id INTEGER REFERENCES league_types(id)"),
         ]
         with app.app_context():
             with db.engine.connect() as conn:
@@ -155,3 +157,37 @@ def _register_cli(app):
                         click.echo(f'Added column "{column}" to "{table}".')
                     except Exception:
                         click.echo(f'Column "{column}" in "{table}" already exists — skipping.')
+
+    @app.cli.command('seed-league-types')
+    def seed_league_types():
+        """
+        Seed the initial league type rows into the league_types table.
+
+        Usage: flask seed-league-types
+
+        Inserts the four standard Snoqualmie Valley league types if they do not
+        already exist. This command is idempotent — safe to re-run as many times
+        as needed; it will never create duplicates or raise an error on rows that
+        are already present.
+
+        New league types added after the initial seed can be managed through the
+        admin UI without running this command again.
+        """
+        from app.models import LeagueType
+        names = [
+            "Snoqualmie Valley Men's League",
+            "Snoqualmie Valley Women's League",
+            "Snoqualmie Valley Mixed Doubles League",
+            "Snoqualmie Valley BCA",
+        ]
+        with app.app_context():
+            added = 0
+            for sort_order, name in enumerate(names, start=1):
+                if LeagueType.query.filter_by(name=name).first():
+                    click.echo(f'Already exists: "{name}"')
+                else:
+                    db.session.add(LeagueType(name=name, sort_order=sort_order))
+                    click.echo(f'Seeded: "{name}"')
+                    added += 1
+            db.session.commit()
+            click.echo(f'Done. {added} row(s) added.')

@@ -4,7 +4,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
   <div>
-    <h2 class="mb-1">{{ season.name }}</h2>
+    <h2 class="mb-1">{{ season.name }}{% if season.league_type %}<span class="badge bg-secondary fw-normal ms-2">{{ season.league_type.name }}</span>{% endif %}</h2>
     <span class="badge bg-{{ 'success' if season.status == 'active' else 'secondary' }} me-2">
       {{ season.status | title }}
     </span>

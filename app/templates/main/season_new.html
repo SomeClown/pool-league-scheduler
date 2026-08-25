@@ -8,6 +8,18 @@
 
     <form method="POST" novalidate>
 
+      <!-- League type -->
+      <div class="mb-3">
+        <label for="league_type_id" class="form-label">League Type</label>
+        <select class="form-select" id="league_type_id" name="league_type_id">
+          <option value="">— optional —</option>
+          {% for lt in league_types %}
+          <option value="{{ lt.id }}">{{ lt.name }}</option>
+          {% endfor %}
+        </select>
+        <div class="form-text">Categorise this season by league. Can be set later via admin.</div>
+      </div>
+
       <!-- Season name -->
       <div class="mb-3">
         <label for="name" class="form-label fw-semibold">Season Name</label>

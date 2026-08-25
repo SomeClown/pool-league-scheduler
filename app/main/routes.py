@@ -32,7 +32,7 @@ from flask_login import login_required, current_user
 
 from app import db
 from app.main import bp
-from app.models import Bar, Bye, Match, Season, SeasonBarCap, Team, User
+from app.models import Bar, Bye, LeagueType, Match, Season, SeasonBarCap, Team, User
 from app.scheduler.algorithm import generate_schedule
 
 
@@ -222,8 +222,9 @@ def season_new():
     The whole thing — season, teams, blackouts, bar caps, matches, byes — is
     committed atomically. If the scheduler blows up, nothing is saved.
     """
-    bars  = Bar.query.order_by(Bar.name).all()
-    teams = Team.query.order_by(Team.name).all()
+    bars         = Bar.query.order_by(Bar.name).all()
+    teams        = Team.query.order_by(Team.name).all()
+    league_types = LeagueType.query.order_by(LeagueType.sort_order, LeagueType.name).all()
 
     if request.method == 'POST':
         name           = request.form.get('name', '').strip()
@@ -234,6 +235,7 @@ def season_new():
         num_weeks_str  = request.form.get('num_weeks', '').strip()
         team_ids       = request.form.getlist('team_ids')
         blackout_strs  = request.form.getlist('blackout_date')
+        league_type_id = request.form.get('league_type_id', type=int)
 
         errors = []
         if not name:
@@ -278,7 +280,8 @@ def season_new():
         if errors:
             for e in errors:
                 flash(e, 'danger')
-            return render_template('main/season_new.html', bars=bars, teams=teams)
+            return render_template('main/season_new.html', bars=bars, teams=teams,
+                               league_types=league_types)
 
         # Parse blackout dates — we need them before counting rounds.
         # Invalid date strings are silently ignored (the JS date picker
@@ -299,12 +302,14 @@ def season_new():
         num_rounds = _count_rounds(start_date, end_date, frequency, blackout_set)
         if num_rounds < 1:
             flash('No match nights fall within that date range. Check your dates and blackouts.', 'danger')
-            return render_template('main/season_new.html', bars=bars, teams=teams)
+            return render_template('main/season_new.html', bars=bars, teams=teams,
+                               league_types=league_types)
 
         # Build the season object and flush to get an ID before the scheduler runs.
-        season         = Season(name=name, start_date=start_date, end_date=end_date, frequency=frequency)
-        selected_teams = Team.query.filter(Team.id.in_([int(i) for i in team_ids])).all()
-        season.teams   = selected_teams
+        season                 = Season(name=name, start_date=start_date, end_date=end_date, frequency=frequency)
+        season.league_type_id  = league_type_id  # None is valid — field is optional
+        selected_teams         = Team.query.filter(Team.id.in_([int(i) for i in team_ids])).all()
+        season.teams           = selected_teams
         season.blackout_dates.extend(parsed_blackouts)
 
         db.session.add(season)
@@ -504,11 +509,13 @@ def admin():
     SQLAlchemy's order_by can't cleanly handle nullable integer columns the
     way we want.
     """
-    bars  = Bar.query.order_by(Bar.name).all()
-    teams = Team.query.order_by(Team.name).all()
+    bars         = Bar.query.order_by(Bar.name).all()
+    teams        = Team.query.order_by(Team.name).all()
     teams.sort(key=lambda t: (t.number is None, t.number or 0, t.name))
-    users = User.query.order_by(User.username).all()
-    return render_template('main/admin.html', bars=bars, teams=teams, users=users)
+    users        = User.query.order_by(User.username).all()
+    league_types = LeagueType.query.order_by(LeagueType.sort_order, LeagueType.name).all()
+    return render_template('main/admin.html', bars=bars, teams=teams, users=users,
+                           league_types=league_types)
 
 
 # --- Bars ---
@@ -759,6 +766,79 @@ def user_delete(user_id):
         db.session.commit()
         flash(f'User "{user.username}" deleted.', 'success')
     return redirect(url_for('main.admin') + '#users')
+
+
+# ---------------------------------------------------------------------------
+# League type admin routes
+# ---------------------------------------------------------------------------
+
+@bp.route('/admin/league-types/add', methods=['POST'])
+@login_required
+@admin_required
+def league_type_add():
+    """
+    Create a new league type.
+
+    Name must be non-empty and unique. Sort order is optional — leave it null
+    if ordering doesn't matter yet. Duplicate names are rejected outright.
+    """
+    name       = request.form.get('name', '').strip()
+    sort_order = request.form.get('sort_order', type=int)
+    if not name:
+        flash('League type name is required.', 'danger')
+    elif LeagueType.query.filter_by(name=name).first():
+        flash(f'A league type named "{name}" already exists.', 'danger')
+    else:
+        db.session.add(LeagueType(name=name, sort_order=sort_order))
+        db.session.commit()
+        flash(f'"{name}" added.', 'success')
+    return redirect(url_for('main.admin') + '#league-types')
+
+
+@bp.route('/admin/league-types/<int:lt_id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def league_type_edit(lt_id):
+    """
+    Update a league type's name and/or sort order.
+
+    Name must be non-empty and not already used by a different league type.
+    Sort order is optional and may be cleared by submitting a blank value.
+    """
+    lt         = LeagueType.query.get_or_404(lt_id)
+    name       = request.form.get('name', '').strip()
+    sort_order = request.form.get('sort_order', type=int)
+    if not name:
+        flash('League type name is required.', 'danger')
+    elif LeagueType.query.filter(LeagueType.name == name, LeagueType.id != lt_id).first():
+        flash(f'A league type named "{name}" already exists.', 'danger')
+    else:
+        lt.name       = name
+        lt.sort_order = sort_order
+        db.session.commit()
+        flash(f'"{lt.name}" updated.', 'success')
+    return redirect(url_for('main.admin') + '#league-types')
+
+
+@bp.route('/admin/league-types/<int:lt_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def league_type_delete(lt_id):
+    """
+    Delete a league type, provided no seasons are assigned to it.
+
+    A league type referenced by one or more seasons cannot be deleted — update
+    or archive those seasons first. This prevents orphaned foreign key references
+    on the Season table.
+    """
+    lt = LeagueType.query.get_or_404(lt_id)
+    if Season.query.filter_by(league_type_id=lt_id).first():
+        flash('Cannot delete: seasons are assigned to this league type.', 'danger')
+    else:
+        db.session.delete(lt)
+        db.session.commit()
+        flash(f'"{lt.name}" deleted.', 'success')
+    return redirect(url_for('main.admin') + '#league-types')
 
 
 @bp.route('/admin/clear-schedules', methods=['POST'])

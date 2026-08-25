@@ -105,6 +105,32 @@ class Bar(db.Model):
         return f'<Bar {self.name}>'
 
 
+class LeagueType(db.Model):
+    """
+    Admin-managed lookup table for categorising seasons by league type.
+
+    Intended use: seasons carry an optional foreign key to this table so the
+    admin UI can filter and group seasons by league (e.g. "8-Ball", "9-Ball",
+    "Scotch Doubles"). The four initial rows are seeded via the CLI command
+    'flask seed-league-types'. Adding further types later requires only
+    inserting a new row — no code changes needed anywhere else.
+
+    Because this is a new table, db.create_all() creates it automatically on
+    the next application startup. No manual migration is required for the table
+    itself; only the nullable FK column added to seasons needs a migration entry
+    (handled separately in F-04-T3).
+    """
+
+    __tablename__ = 'league_types'
+
+    id         = db.Column(db.Integer, primary_key=True)
+    name       = db.Column(db.String(100), unique=True, nullable=False)
+    sort_order = db.Column(db.Integer, nullable=True)
+
+    def __repr__(self):
+        return f'<LeagueType {self.name}>'
+
+
 class Team(db.Model):
     """
     Represents a pool league team.
@@ -172,14 +198,16 @@ class Season(db.Model):
 
     __tablename__ = 'seasons'
 
-    id         = db.Column(db.Integer, primary_key=True)
-    name       = db.Column(db.String(100), nullable=False)
-    start_date = db.Column(db.Date, nullable=False)
-    end_date   = db.Column(db.Date, nullable=True)
-    frequency  = db.Column(db.String(20), nullable=False, default='weekly')
-    status     = db.Column(db.String(20), nullable=False, default='active')  # 'active' | 'archived'
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    id             = db.Column(db.Integer, primary_key=True)
+    name           = db.Column(db.String(100), nullable=False)
+    start_date     = db.Column(db.Date, nullable=False)
+    end_date       = db.Column(db.Date, nullable=True)
+    frequency      = db.Column(db.String(20), nullable=False, default='weekly')
+    status         = db.Column(db.String(20), nullable=False, default='active')  # 'active' | 'archived'
+    created_at     = db.Column(db.DateTime, default=datetime.utcnow)
+    league_type_id = db.Column(db.Integer, db.ForeignKey('league_types.id'), nullable=True)  # nullable — pre-existing seasons have no type assigned
 
+    league_type   = db.relationship('LeagueType', lazy=True)
     teams         = db.relationship('Team', secondary=season_teams, backref='seasons', lazy=True)
     blackout_dates = db.relationship('BlackoutDate', backref='season', lazy=True, cascade='all, delete-orphan')
     bar_caps      = db.relationship('SeasonBarCap',   backref='season', lazy=True, cascade='all, delete-orphan')

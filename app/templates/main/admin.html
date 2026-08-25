@@ -23,6 +23,10 @@
       Users <span class="badge bg-secondary ms-1">{{ users | length }}</span>
     </button>
   </li>
+  <li class="nav-item" role="presentation">
+    <a class="nav-link" id="league-types-tab" data-bs-toggle="tab"
+       href="#league-types" role="tab">League Types</a>
+  </li>
 </ul>
 
 <div class="tab-content border border-top-0 rounded-bottom p-4 bg-white">
@@ -209,6 +213,54 @@
     </div>
     {% else %}
     <p class="text-muted">No users found.</p>
+    {% endif %}
+  </div>
+
+  <!-- ── LEAGUE TYPES ── -->
+  <div class="tab-pane fade" id="league-types" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">League Types</h5>
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addLeagueTypeModal">
+        <i class="bi bi-plus-lg me-1"></i>Add League Type
+      </button>
+    </div>
+
+    {% if league_types %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width:3.5rem">#</th>
+            <th>Name</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lt in league_types %}
+          <tr>
+            <td class="text-muted">{{ lt.sort_order if lt.sort_order is not none else '—' }}</td>
+            <td class="fw-semibold">{{ lt.name }}</td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-secondary me-1"
+                      data-bs-toggle="modal" data-bs-target="#editLeagueTypeModal"
+                      data-lt-id="{{ lt.id }}"
+                      data-name="{{ lt.name }}"
+                      data-sort-order="{{ lt.sort_order if lt.sort_order is not none else '' }}">
+                Edit
+              </button>
+              <form method="POST" action="{{ url_for('main.league_type_delete', lt_id=lt.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Delete {{ lt.name }}?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No league types added yet.</p>
     {% endif %}
   </div>
 
@@ -459,6 +511,63 @@
   </div>
 </div>
 
+<!-- Add League Type -->
+<div class="modal fade" id="addLeagueTypeModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('main.league_type_add') }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Add League Type</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" name="name" class="form-control" required autofocus>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Sort Order <span class="text-muted small">(optional)</span></label>
+            <input type="number" name="sort_order" class="form-control" min="1" placeholder="e.g. 1">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add League Type</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit League Type -->
+<div class="modal fade" id="editLeagueTypeModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <form method="POST" id="editLeagueTypeForm" action="">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit League Type</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" name="name" id="editLeagueTypeName" class="form-control" required>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Sort Order <span class="text-muted small">(optional)</span></label>
+            <input type="number" name="sort_order" id="editLeagueTypeSortOrder"
+                   class="form-control" min="1" placeholder="e.g. 1">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- Clear All Schedules -->
 {% if current_user.is_superuser %}
 <div class="modal fade" id="clearSchedulesModal" tabindex="-1">
@@ -490,7 +599,7 @@
   // Activate tab from URL hash on page load
   (function () {
     const hash = window.location.hash;
-    const map = { '#bars': 'tab-bars-btn', '#teams': 'tab-teams-btn', '#users': 'tab-users-btn' };
+    const map = { '#bars': 'tab-bars-btn', '#teams': 'tab-teams-btn', '#users': 'tab-users-btn', '#league-types': 'league-types-tab' };
     const btnId = map[hash];
     if (btnId) {
       const btn = document.getElementById(btnId);
@@ -522,6 +631,14 @@
     document.getElementById('editUserUsername').value = btn.dataset.username;
     document.getElementById('editUserRole').value = btn.dataset.role;
     document.getElementById('editUserForm').action = '/admin/users/' + btn.dataset.id + '/edit';
+  });
+
+  // Populate Edit League Type modal
+  document.getElementById('editLeagueTypeModal').addEventListener('show.bs.modal', function (e) {
+    const btn = e.relatedTarget;
+    document.getElementById('editLeagueTypeName').value = btn.dataset.name;
+    document.getElementById('editLeagueTypeSortOrder').value = btn.dataset.sortOrder || '';
+    document.getElementById('editLeagueTypeForm').action = '/admin/league-types/' + btn.dataset.ltId + '/edit';
   });
 </script>
 {% endblock %}
