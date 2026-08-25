@@ -34,6 +34,12 @@
        class="btn btn-outline-secondary" target="_blank">
       <i class="bi bi-grid-3x2 me-1"></i>Compact View
     </a>
+    {% if current_user.is_admin %}
+    <button type="button" id="copy-link-btn" class="btn btn-outline-secondary"
+            onclick="copyScheduleLink()">
+      <i class="bi bi-link-45deg me-1" id="copy-link-icon"></i><span id="copy-link-text">Copy Link</span>
+    </button>
+    {% endif %}
     {% if current_user.is_admin and season.status == 'active' %}
     <form method="POST" action="{{ url_for('main.season_regenerate', season_id=season.id) }}"
           onsubmit="return confirm('Regenerate the schedule? All current matchups will be replaced.')">
@@ -104,4 +110,19 @@
   No rounds scheduled yet.
 </div>
 {% endif %}
+
+<script>
+function copyScheduleLink() {
+  navigator.clipboard.writeText(window.location.href).then(function () {
+    var icon = document.getElementById('copy-link-icon');
+    var text = document.getElementById('copy-link-text');
+    icon.className = 'bi bi-check2 me-1';
+    text.textContent = 'Copied!';
+    setTimeout(function () {
+      icon.className = 'bi bi-link-45deg me-1';
+      text.textContent = 'Copy Link';
+    }, 2000);
+  });
+}
+</script>
 {% endblock %}

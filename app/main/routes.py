@@ -181,14 +181,12 @@ def _persist_schedule(schedule, season):
 # ---------------------------------------------------------------------------
 
 @bp.route('/')
-@login_required
 def index():
     """Root URL — just redirects to the seasons list. Nothing to see here."""
     return redirect(url_for('main.seasons'))
 
 
 @bp.route('/seasons')
-@login_required
 def seasons():
     """
     Display the main seasons list page.
@@ -337,7 +335,6 @@ def season_new():
 
 
 @bp.route('/seasons/<int:season_id>')
-@login_required
 def season_detail(season_id):
     """
     Display the full schedule for a season, organized by round.
@@ -351,7 +348,6 @@ def season_detail(season_id):
 
 
 @bp.route('/seasons/<int:season_id>/print')
-@login_required
 def season_print(season_id):
     """
     Render a print-optimized version of the season schedule.
@@ -367,7 +363,6 @@ def season_print(season_id):
 
 
 @bp.route('/seasons/<int:season_id>/export')
-@login_required
 def season_export(season_id):
     """
     Generate and return a formatted Excel (.xlsx) workbook for the season.
@@ -394,7 +389,6 @@ def season_export(season_id):
 
 
 @bp.route('/seasons/<int:season_id>/compact')
-@login_required
 def season_compact(season_id):
     """
     Render the compact quick-reference view for a season.
@@ -483,7 +477,6 @@ def season_archive(season_id):
 # ---------------------------------------------------------------------------
 
 @bp.route('/instructions')
-@login_required
 def instructions():
     """
     Render the instructions / help page.
