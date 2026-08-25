@@ -147,6 +147,66 @@
   </div>
 </div>
 
+{% if current_user.is_admin %}
+<div class="card mt-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-calendar-x me-2"></i>Blackout Dates</span>
+    <button class="btn btn-sm btn-outline-secondary" type="button"
+            data-bs-toggle="collapse" data-bs-target="#blackoutPanel">
+      Manage
+    </button>
+  </div>
+  <div class="collapse" id="blackoutPanel">
+    <div class="card-body">
+
+      <!-- Existing blackout dates list -->
+      {% if season.blackout_dates %}
+      <ul class="list-group list-group-flush mb-3">
+        {% for bd in season.blackout_dates | sort(attribute='date') %}
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+          <span>{{ bd.date.strftime('%A, %B %-d, %Y') }}</span>
+          {% if season.status == 'active' %}
+          <form method="POST"
+                action="{{ url_for('main.blackout_delete', season_id=season.id, blackout_id=bd.id) }}"
+                class="d-inline">
+            <button type="submit" class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('Remove this blackout date? All round dates will be recalculated.')">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted mb-3">No blackout dates set for this season.</p>
+      {% endif %}
+
+      <!-- Add new blackout date (active seasons only) -->
+      {% if season.status == 'active' %}
+      <form method="POST"
+            action="{{ url_for('main.blackout_add', season_id=season.id) }}"
+            class="d-flex gap-2 align-items-end">
+        <div>
+          <label for="blackoutDate" class="form-label mb-1">Add Blackout Date</label>
+          <input type="date" class="form-control form-control-sm" id="blackoutDate"
+                 name="date" required>
+        </div>
+        <button type="submit" class="btn btn-sm btn-outline-primary mb-0">
+          <i class="bi bi-plus-lg me-1"></i>Add
+        </button>
+      </form>
+      <p class="form-text mt-1">
+        Adding or removing a blackout date recalculates all round dates.
+        Match assignments are not affected.
+      </p>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <script>
 function copyScheduleLink() {
   navigator.clipboard.writeText(window.location.href).then(function () {

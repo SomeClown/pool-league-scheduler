@@ -32,7 +32,7 @@ from flask_login import login_required, current_user
 
 from app import db
 from app.main import bp
-from app.models import Bar, Bye, LeagueType, Match, Season, SeasonBarCap, Team, User
+from app.models import Bar, BlackoutDate, Bye, LeagueType, Match, Season, SeasonBarCap, Team, User
 from app.scheduler.algorithm import generate_schedule
 
 
@@ -221,6 +221,34 @@ def _reconstruct_state(season, freeze_through_round):
         team_streaks[match.away_team_id] = s - 1 if s < 0 else -1
 
     return matchup_history, team_streaks, frozen_dates
+
+
+def _remap_dates(season):
+    """
+    Recalculate calendar dates for all rounds in a season using the current
+    blackout dates, without changing any match assignments.
+
+    Walks forward from season.start_date in frequency steps, skipping any date
+    in the current blackout set, and updates the date field on every Match and
+    Bye record in the season. Call db.session.flush() before calling this so any
+    newly added or deleted BlackoutDate rows are visible to the query.
+
+    Does NOT commit — the caller is responsible for committing after this returns.
+    """
+    from datetime import timedelta
+    blackouts = {bd.date for bd in season.blackout_dates}
+    delta     = timedelta(weeks=2) if season.frequency == 'biweekly' else timedelta(weeks=1)
+    rounds    = _build_rounds(season)
+    current   = season.start_date
+
+    for round_num in sorted(rounds.keys()):
+        while current in blackouts:
+            current += delta
+        for match in rounds[round_num]['matches']:
+            match.date = current
+        if rounds[round_num]['bye']:
+            rounds[round_num]['bye'].date = current
+        current += delta
 
 
 # ---------------------------------------------------------------------------
@@ -607,6 +635,83 @@ def season_regenerate_partial(season_id):
         db.session.rollback()
         flash('An error occurred while regenerating the schedule. No changes were saved.', 'danger')
         return redirect(url_for('main.season_detail', season_id=season_id))
+
+
+# ---------------------------------------------------------------------------
+# Blackout date routes
+# ---------------------------------------------------------------------------
+
+@bp.route('/seasons/<int:season_id>/blackouts/add', methods=['POST'])
+@login_required
+@admin_required
+def blackout_add(season_id):
+    """
+    Add a blackout date to an active season and remap all round dates.
+
+    Reads 'date' from the POST form (expected format: YYYY-MM-DD from a date
+    input). Validates the date, checks for duplicates, adds the BlackoutDate
+    row, then calls _remap_dates() to shift all round dates around the new
+    blackout. Commits and redirects back to the season detail page.
+    """
+    season = Season.query.get_or_404(season_id)
+    if season.status != 'active':
+        flash('Blackout dates can only be modified on active seasons.', 'warning')
+        return redirect(url_for('main.season_detail', season_id=season_id))
+
+    date_str = request.form.get('date', '').strip()
+    try:
+        blackout_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash('Invalid date. Please use the date picker.', 'danger')
+        return redirect(url_for('main.season_detail', season_id=season_id))
+
+    if BlackoutDate.query.filter_by(season_id=season_id, date=blackout_date).first():
+        flash('That date is already a blackout date.', 'warning')
+        return redirect(url_for('main.season_detail', season_id=season_id))
+
+    try:
+        db.session.add(BlackoutDate(season_id=season_id, date=blackout_date))
+        db.session.flush()   # make new row visible to _remap_dates
+        _remap_dates(season)
+        db.session.commit()
+        flash(f'Blackout date added. All round dates have been updated.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred adding the blackout date.', 'danger')
+
+    return redirect(url_for('main.season_detail', season_id=season_id))
+
+
+@bp.route('/seasons/<int:season_id>/blackouts/<int:blackout_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def blackout_delete(season_id, blackout_id):
+    """
+    Remove a blackout date from an active season and remap all round dates.
+
+    Deletes the BlackoutDate row, then calls _remap_dates() so that the round
+    previously pushed past this blackout can shift back to its natural date.
+    """
+    season   = Season.query.get_or_404(season_id)
+    blackout = BlackoutDate.query.get_or_404(blackout_id)
+
+    if blackout.season_id != season_id:
+        abort(404)
+    if season.status != 'active':
+        flash('Blackout dates can only be modified on active seasons.', 'warning')
+        return redirect(url_for('main.season_detail', season_id=season_id))
+
+    try:
+        db.session.delete(blackout)
+        db.session.flush()   # make deletion visible to _remap_dates
+        _remap_dates(season)
+        db.session.commit()
+        flash('Blackout date removed. All round dates have been updated.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred removing the blackout date.', 'danger')
+
+    return redirect(url_for('main.season_detail', season_id=season_id))
 
 
 @bp.route('/seasons/<int:season_id>/archive', methods=['POST'])
