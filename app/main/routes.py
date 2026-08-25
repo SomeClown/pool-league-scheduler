@@ -28,7 +28,8 @@ import io
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import render_template, redirect, url_for, flash, request, abort, send_file
+from flask import render_template, redirect, url_for, flash, request, abort, send_file, \
+    send_from_directory, current_app
 from flask_login import login_required, current_user
 
 from app import db
@@ -255,6 +256,22 @@ def _remap_dates(season):
 # ---------------------------------------------------------------------------
 # Season routes
 # ---------------------------------------------------------------------------
+
+@bp.route('/manifest.json')
+def manifest():
+    """Serve the PWA web app manifest from root so browsers find it easily."""
+    return send_from_directory(current_app.static_folder, 'manifest.json',
+                               mimetype='application/manifest+json')
+
+
+@bp.route('/sw.js')
+def service_worker():
+    """Serve the service worker from root — required for scope to cover the whole app."""
+    response = send_from_directory(current_app.static_folder, 'sw.js',
+                                   mimetype='application/javascript')
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
+
 
 @bp.route('/')
 def index():
