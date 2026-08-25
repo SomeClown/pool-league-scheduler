@@ -72,7 +72,7 @@
               </button>
               <form method="POST" action="{{ url_for('main.bar_delete', bar_id=bar.id) }}"
                     class="d-inline"
-                    onsubmit="return confirm('Delete {{ bar.name }}?')">
+                    onsubmit="return confirm('Delete ' + {{ bar.name | tojson }} + '?')">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
               </form>
             </td>
@@ -126,7 +126,7 @@
               </button>
               <form method="POST" action="{{ url_for('main.team_delete', team_id=team.id) }}"
                     class="d-inline"
-                    onsubmit="return confirm('Delete {{ team.name }}?')">
+                    onsubmit="return confirm('Delete ' + {{ team.name | tojson }} + '?')">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
               </form>
             </td>
@@ -201,7 +201,7 @@
               {% if can_delete %}
               <form method="POST" action="{{ url_for('main.user_delete', user_id=user.id) }}"
                     class="d-inline"
-                    onsubmit="return confirm('Delete user {{ user.username }}?')">
+                    onsubmit="return confirm('Delete user ' + {{ user.username | tojson }} + '?')">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
               </form>
               {% endif %}
@@ -250,7 +250,7 @@
               </button>
               <form method="POST" action="{{ url_for('main.league_type_delete', lt_id=lt.id) }}"
                     class="d-inline"
-                    onsubmit="return confirm('Delete {{ lt.name }}?')">
+                    onsubmit="return confirm('Delete ' + {{ lt.name | tojson }} + '?')">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
               </form>
             </td>

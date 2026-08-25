@@ -320,6 +320,8 @@ def season_new():
             errors.append('Start date is required.')
         if len(team_ids) < 2:
             errors.append('At least 2 teams must be selected.')
+        if league_type_id is not None and not LeagueType.query.get(league_type_id):
+            errors.append('Invalid league type.')
 
         start_date = None
         if start_date_str:
@@ -412,7 +414,8 @@ def season_new():
         flash(f'Season "{name}" created with {len(schedule)} rounds.', 'success')
         return redirect(url_for('main.season_detail', season_id=season.id))
 
-    return render_template('main/season_new.html', bars=bars, teams=teams)
+    return render_template('main/season_new.html', bars=bars, teams=teams,
+                           league_types=league_types)
 
 
 @bp.route('/seasons/<int:season_id>')
@@ -485,7 +488,7 @@ def season_export_csv(season_id):
 
     safe_name = season.name.replace(' ', '_').replace('/', '-')
     return send_file(
-        io.BytesIO(csv_file.read().encode('utf-8')),
+        io.BytesIO(csv_file.read().encode('utf-8-sig')),
         mimetype='text/csv',
         as_attachment=True,
         download_name=f'{safe_name}_Schedule.csv',
@@ -595,7 +598,7 @@ def season_regenerate_partial(season_id):
 
     rounds       = _build_rounds(season)
     total_rounds = len(rounds)
-    if freeze_through_round >= total_rounds:
+    if freeze_through_round not in rounds or freeze_through_round >= total_rounds:
         flash('Freeze round must be less than the total number of rounds.', 'danger')
         return redirect(url_for('main.season_detail', season_id=season_id))
 
