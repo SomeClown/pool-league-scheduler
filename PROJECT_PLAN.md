@@ -157,7 +157,7 @@ back-end before UI polish; front-end redesign last.
 
 ### Public Access
 
-- [ ] **F-13** — Public schedule viewing.
+- [x] **F-13** — Public schedule viewing. **COMPLETE (2026-08-25, commit d2e93fb)**
   - Season schedules, Excel export, CSV export, and the Instructions page are all
     **publicly accessible** — no login required.
   - Login button in the upper-right corner for admins and authenticated users.
@@ -222,6 +222,7 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 | 2026-08-25 | Add M-01 meta-item: custom investigation agent | Master (Claude) |
 | 2026-08-25 | Planning agent audit complete; F-11 closed, execution sequence set | Planning agent |
 | 2026-08-25 | Applied all planning agent suggestions; added F-15, M-02; recorded flag answers | Master (Claude) |
+| 2026-08-25 | F-13 complete: public schedule viewing, anonymous navbar, copy-link button | Back-end + Front-end agents |
 
 ---
 
