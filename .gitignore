@@ -13,3 +13,6 @@ instance/
 CLAUDE.md
 .idea/
 .pytest_cache/
+
+# Machine-local Claude Code state
+.claude/
