@@ -66,16 +66,19 @@ back-end before UI polish; front-end redesign last.
   - Web Interface Guidelines review pass completed (commit e2f39dd): color-scheme, theme-color
     meta, prefers-reduced-motion guard, aria-label/aria-hidden, autocomplete attributes.
 
-- [ ] **F-02** — Full desktop + mobile optimization (responsive at all breakpoints,
-  touch-friendly controls, 44px minimum touch targets).
+- [x] **F-02** — Full desktop + mobile optimization. **COMPLETE (2026-08-25, commit 87e5f00)**
+  - touch-action: manipulation on body; @media (hover: none) and (pointer: coarse) block
+    enforces 44px min-height on all interactive elements (touch devices only).
+  - season_detail: header stacks vertically at xs; action toolbar buttons promoted from btn-sm.
+  - season_new: submit/cancel full-width at xs; Add Blackout Date promoted from btn-sm.
+  - admin: tab content padding narrowed at xs; Danger Zone stacks on mobile.
+  - base.html: Log In CTA promoted from btn-sm.
 
-- [ ] **F-03** — Progressive Web App (PWA): installable on device without app store,
-  service worker, manifest, offline-capable shell.
-  - HTTPS is already in place on the production server (Nginx) — no server-side
-    prerequisite work needed.
-  - Service workers do not activate on local `flask run` (HTTP only) — this is
-    expected, not a bug.
-  - `start_url` should be `/seasons` (public under F-13).
+- [x] **F-03** — Progressive Web App (PWA). **COMPLETE (2026-08-25, commit a44a4cc)**
+  - manifest.json: name, short_name, start_url=/seasons, display=standalone, black theme.
+  - sw.js: network-first for navigation, cache-first for static, stale-while-revalidate for CDN.
+  - /manifest.json and /sw.js Flask routes at root (required for SW scope = /).
+  - Gold circle on black icons at 192px and 512px; Apple PWA meta tags in base.html.
 
 ---
 
@@ -238,6 +241,8 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 | 2026-08-25 | F-14 complete: Player model, admin CRUD, schedule roster disclosure, Excel columns | Back-end + Front-end agents |
 | 2026-08-25 | F-01 complete: dark mode, Inter font, token system, btn-group radios, guidelines pass | Front-end agent |
 | 2026-08-25 | M-02 complete: UI/UX agent definition written | Master (Claude) |
+| 2026-08-25 | F-02 complete: mobile optimization, touch targets, responsive layout fixes | Front-end agent |
+| 2026-08-25 | F-03 complete: PWA manifest, service worker, icons, Apple meta tags | Front-end + Back-end agents |
 
 ---
 
