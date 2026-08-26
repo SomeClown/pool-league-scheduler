@@ -55,6 +55,35 @@ def client(app):
     return app.test_client()
 
 
+@pytest.fixture(autouse=True)
+def _enforce_temp_database(request, tmp_path):
+    """
+    Fail loudly if a test's app is not bound to the per-test tmp_path database.
+
+    The `app` fixture always builds its config with a tmp_path-scoped SQLite
+    URI, but that's a convention, not an invariant — nothing stops a future
+    test (or a future edit to the `app` fixture itself) from calling
+    create_app() with no config and landing on the real league.db. This
+    fixture is the backstop: it inspects whatever app the test actually
+    built and asserts the URI is rooted under this test's tmp_path.
+
+    Skips entirely for tests that never request the `app` fixture (directly
+    or via client/admin_client/viewer_client/sample_league) — e.g. the pure
+    scheduler-algorithm tests, which never touch Flask or a database, so
+    there's nothing to check and no reason to force an app to be built.
+    """
+    if 'app' not in request.fixturenames:
+        return
+    application = request.getfixturevalue('app')
+    uri = application.config['SQLALCHEMY_DATABASE_URI']
+    expected_prefix = 'sqlite:///' + str(tmp_path)
+    assert uri.startswith(expected_prefix), (
+        'Refusing to run: SQLALCHEMY_DATABASE_URI ({0!r}) is not scoped to '
+        'this test\'s tmp_path ({1}) — a test in this state could read or '
+        'write the real league.db.'.format(uri, tmp_path)
+    )
+
+
 def create_user(app, username, password, role='viewer', is_superuser=False):
     """Create and commit a user; returns its id."""
     with app.app_context():
@@ -93,14 +122,19 @@ def viewer_client(app):
 @pytest.fixture
 def sample_league(app):
     """
-    Two bars (2 tables each) and four teams, two per bar.
+    Two bars and four teams, two per bar.
+
+    Each bar has more physical tables (4) than its standing tables_in_use
+    limit (2) — deliberately different so tests that assert on the clamped
+    cap value can tell "used tables_in_use" apart from "used tables" (a bug
+    that would otherwise be invisible if the two numbers matched).
 
     Returns a dict of plain ids/names so tests never hold detached ORM
     instances: {'bar_ids': [...], 'team_ids': [...], 'team_names': [...]}.
     """
     with app.app_context():
-        bar_a = Bar(name='The Cue Club', tables=2, tables_in_use=2)
-        bar_b = Bar(name='Rack Room', tables=2, tables_in_use=2)
+        bar_a = Bar(name='The Cue Club', tables=4, tables_in_use=2)
+        bar_b = Bar(name='Rack Room', tables=4, tables_in_use=2)
         db.session.add_all([bar_a, bar_b])
         db.session.flush()
 

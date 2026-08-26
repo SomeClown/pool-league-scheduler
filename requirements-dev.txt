@@ -1,4 +1,6 @@
 # Development / test dependencies. Install on top of the runtime set:
 #   venv/bin/pip install -r requirements-dev.txt
 -r requirements.txt
+# pytest 8.3.x is the last release line supporting Python 3.8 — do not bump
+# past 8.3 while the production server floor is Python 3.8.
 pytest==8.3.5

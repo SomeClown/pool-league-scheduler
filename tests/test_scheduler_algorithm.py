@@ -16,7 +16,25 @@ import random
 from datetime import date, timedelta
 from itertools import combinations
 
+import pytest
+
 from app.scheduler.algorithm import MAX_HOME_AWAY_STREAK, generate_schedule
+
+
+@pytest.fixture(autouse=True)
+def _preserve_global_random_state():
+    """
+    Save and restore the process-global RNG state around every test here.
+
+    These tests call random.seed(N) directly (the algorithm module uses the
+    global `random` instance internally, so that's the only way to make its
+    shuffles/tie-breaks deterministic). Without restoring afterward, a fixed
+    seed leaks into whatever test runs next in the same process — a latent
+    test-ordering hazard for any other test that relies on real randomness.
+    """
+    state = random.getstate()
+    yield
+    random.setstate(state)
 
 
 # ---------------------------------------------------------------------------
@@ -243,11 +261,41 @@ def test_home_away_streak_cap_respected():
                                 pre[opponent.id]))
 
 
-def test_byes_do_not_reset_streaks():
-    # With an odd team count each team sits out once per cycle; the streak
-    # bookkeeping must carry across the bye rather than reset. We verify the
-    # cap still holds when computed the way the algorithm defines it
-    # (consecutive games played, byes transparent).
+def test_streak_state_survives_across_a_bye():
+    """
+    Pins the actual mechanism generate_schedule() uses to carry streak state
+    across a bye: the `initial_streaks` parameter (the same one
+    season_regenerate_partial's _reconstruct_state() feeds back in when
+    resuming a season after already-played rounds, byes included).
+
+    Team A is seeded at exactly MAX_HOME_AWAY_STREAK home games — as if it
+    just played a 3-home-game run, then sat out a bye (which the algorithm
+    documents as leaving the streak untouched), and now faces its next
+    match. If byes/resumption reset the streak to zero, A would freely be
+    assigned home again here; since the streak is preserved, the cap must
+    force A away instead.
+    """
+    random.seed(42)
+    teams, bars = make_league([2], tables_per_bar=10)  # 2 teams, same bar
+    team_a, team_b = teams
+    seeded_streaks = {team_a.id: MAX_HOME_AWAY_STREAK, team_b.id: 0}
+
+    schedule = generate_schedule(FakeSeason(), teams, bars, num_rounds=1,
+                                 initial_streaks=seeded_streaks)
+
+    home, away, _bar_id = schedule[0]['matches'][0]
+    assert away.id == team_a.id, (
+        'a streak carried across a bye/resume must still force alternation '
+        'on the next match — team A should be forced away here, not '
+        'reassigned home as if the streak had reset to zero')
+
+
+def test_streak_cap_holds_across_many_rounds_with_byes_present():
+    # General streak-cap invariant (see test_home_away_streak_cap_respected)
+    # re-checked on an odd-team-count league, i.e. one where byes actually
+    # occur during the run. This does NOT by itself pin bye-transparency —
+    # see test_streak_state_survives_across_a_bye for that — it only proves
+    # the cap invariant continues to hold overall when byes are in the mix.
     for seed in range(5):
         random.seed(seed)
         teams, bars = make_league([3, 2], tables_per_bar=10)  # 5 teams, byes
