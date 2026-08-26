@@ -31,6 +31,7 @@ scheduler does its best; the rest is physics.
 """
 
 import random
+from collections import deque
 from datetime import timedelta
 
 # Maximum consecutive home (or away) games a team may accumulate before the
@@ -196,6 +197,85 @@ def _round_robin_pairs(teams):
 # Step 2 — Assign home / away to maximise bar coverage
 # ---------------------------------------------------------------------------
 
+def _find_augmenting_path(start_bar, assignments, bar_state):
+    """
+    BFS from an over-capacity bar for a chain of home/away flips that ends
+    at a bar with spare capacity.
+
+    Every cross-bar match has exactly two possible host bars — whichever
+    team ends up "home". Right now each match in `assignments` is hosted at
+    one of those two bars; flipping it moves the host to the other one.
+    Searching for a bar reachable from `start_bar` via a chain of such flips
+    that has room to spare is the standard augmenting-path technique used
+    for bipartite b-matching / max-flow — it's guaranteed to find a fix
+    whenever one exists for the round's fixed pairing, not just the
+    one-hop case.
+
+    Returns a list of indices into `assignments` to flip (in traversal
+    order), or None if no augmenting path exists — meaning this round's
+    pairing has no capacity-respecting arrangement at all, which can only
+    happen when the round's matches structurally require more simultaneous
+    tables at some bar than exist, independent of how home/away is decided.
+    """
+    visited_bars = {start_bar}
+    queue = deque([(start_bar, [])])
+
+    while queue:
+        bar, path = queue.popleft()
+        for idx, (home, away, host_bar_id) in enumerate(assignments):
+            if idx in path or home.bar_id == away.bar_id or host_bar_id != bar:
+                continue  # already used, not flippable (same-bar), or not hosted here
+
+            other_bar = away.bar_id  # the match's other candidate host
+            if other_bar in visited_bars:
+                continue
+
+            new_path = path + [idx]
+            if bar_state[other_bar]['load'] < bar_state[other_bar]['capacity']:
+                return new_path
+
+            visited_bars.add(other_bar)
+            queue.append((other_bar, new_path))
+
+    return None
+
+
+def _repair_capacity_overflow(assignments, bar_state):
+    """
+    Resolve hard-capacity violations left by the greedy walk in
+    _assign_home_away, mutating `assignments` and `bar_state` in place.
+
+    The greedy walk decides each pair one at a time and can force a match
+    over capacity when both of its candidate bars happen to already be full
+    from earlier, independently-decided pairs — even when a valid
+    capacity-respecting arrangement exists for the round as a whole (this is
+    a real, reproducible scenario, not a hypothetical: it showed up during
+    F-06 validation testing with tightly-capped bars). For each over-capacity
+    bar, search for an augmenting path of flips that redistributes load onto
+    a bar with room to spare, and apply it. Repairing may flip a
+    streak-forced decision — that's intentional, since capacity is the
+    higher-priority hard constraint and streak is a softer one.
+
+    If no augmenting path exists for a given bar, the violation is left in
+    place — this only happens when the round's fixed pairing has no
+    capacity-respecting arrangement at all (every possible reassignment
+    still overflows somewhere), which no algorithm can avoid without
+    changing which teams are paired that round.
+    """
+    for bar_id in bar_state:
+        while bar_state[bar_id]['load'] > bar_state[bar_id]['capacity']:
+            path = _find_augmenting_path(bar_id, assignments, bar_state)
+            if path is None:
+                break
+
+            for idx in path:
+                home, away, host_bar_id = assignments[idx]
+                bar_state[host_bar_id]['load'] -= 1
+                new_home, new_away = away, home
+                bar_state[new_home.bar_id]['load'] += 1
+                assignments[idx] = (new_home, new_away, new_home.bar_id)
+
+
 def _assign_home_away(pairs, bars, bar_caps, matchup_history, team_streaks):
     """
     Assign home and away status to each match pair for a single round.
@@ -226,6 +306,12 @@ def _assign_home_away(pairs, bars, bar_caps, matchup_history, team_streaks):
     the state at the start of the round. This is where the magic happens,
     or at least where the interesting-ish math happens.
 
+    Because each pair is decided in isolation, the greedy walk can force a
+    later pair over capacity even when a valid arrangement exists for the
+    round as a whole — see _repair_capacity_overflow(), which runs after
+    the greedy walk and fixes any such overflow via augmenting-path search
+    whenever a feasible rearrangement exists.
+
     Args:
         pairs:           List of (team_a, team_b) tuples for this round.
         bars:            List of Bar instances in the season.
@@ -248,13 +334,27 @@ def _assign_home_away(pairs, bars, bar_caps, matchup_history, team_streaks):
         """
         If either team's streak has hit the cap, return the (home, away)
         order that breaks it: home goes to the team with the lower signed
-        streak (the one who's been away longest). Returns None when no cap
-        is hit or both teams' streaks are equal (no way to favour either).
+        streak (the one who's been away longest). Returns None only when
+        neither team has hit the cap.
+
+        Edge case: when both teams have hit the cap with an EQUAL signed
+        streak (e.g. two teams each on a 3-game away run, paired against
+        each other), there's no way to tell which one "deserves" home more
+        from streak state alone — but since they're playing each other,
+        exactly one of them is going to extend past the cap no matter what.
+        That's unavoidable given the round's fixed pairing, not a bug. What
+        matters is that THIS function still makes the call (delegating to
+        the same tie-break used elsewhere) instead of returning None and
+        letting lower-priority signals like matchup history or bar coverage
+        decide — streak concerns outrank those in the documented priority
+        order, and that should hold even in the tied case.
         """
         s1 = team_streaks.get(t1.id, 0)
         s2 = team_streaks.get(t2.id, 0)
-        if max(abs(s1), abs(s2)) < MAX_HOME_AWAY_STREAK or s1 == s2:
+        if max(abs(s1), abs(s2)) < MAX_HOME_AWAY_STREAK:
             return None
+        if s1 == s2:
+            return _streak_lean(t1, t2)
         return (t1, t2) if s1 < s2 else (t2, t1)
 
     def _streak_lean(t1, t2):
@@ -351,6 +451,14 @@ def _assign_home_away(pairs, bars, bar_caps, matchup_history, team_streaks):
 
         bar_state[home.bar_id]['load'] += 1
         assignments.append((home, away, home.bar_id))
+
+    # The greedy walk above decides each pair in isolation and can paint
+    # itself into a corner: two earlier pairs independently claim the same
+    # bar as host, leaving a later pair with nowhere valid to go even though
+    # a capacity-respecting arrangement exists for the round as a whole.
+    # Repair any such overflow now via augmenting-path search over the
+    # matches already decided this round.
+    _repair_capacity_overflow(assignments, bar_state)
 
     return assignments
 

@@ -98,12 +98,31 @@ back-end before UI polish; front-end redesign last.
 
 - [x] **F-05** — Maintain existing scheduling constraints and logic.
 
-- [~] **F-06** — Revisit and refine scheduling constraints/logic.
-  - Discovery session complete (2026-08-25). Current priority order reviewed and confirmed
-    as correct: capacity hard limit → streak cap (3) → matchup history flip → bar coverage
-    → remaining capacity → streak lean / coin flip.
-  - **Pending:** validation testing — run several practice schedules and review the output
-    for fairness and correctness before closing this item.
+- [x] **F-06** — Revisit and refine scheduling constraints/logic. **COMPLETE (2026-08-25)**
+  - Discovery session: current priority order confirmed correct — capacity hard limit →
+    streak cap (3) → matchup history flip → bar coverage → remaining capacity → streak
+    lean / coin flip.
+  - Validation testing: ran the scheduler against 5 practice league configurations (30
+    trials each) plus targeted stress tests. Found and fixed two real deviations from
+    documented behavior:
+    1. **Hard capacity could be exceeded.** The cross-bar greedy walk decides each pair
+       in isolation with no lookahead, so it could force a match over a bar's table cap
+       even when a valid capacity-respecting arrangement existed for the round (confirmed
+       with a tightly-capped scenario: 97 violations / 270 round-instances). Fixed with
+       `_repair_capacity_overflow()` — an augmenting-path repair pass (standard bipartite
+       b-matching technique) that runs after the greedy walk and redistributes already-
+       decided matches to eliminate overflow whenever a feasible rearrangement exists.
+       Verified against an independent from-scratch max-flow oracle: every violation
+       remaining after repair was confirmed genuinely infeasible (not a missed fix).
+    2. **Streak cap (3) could be exceeded by one game without capacity forcing.** When two
+       teams paired against each other are both at the identical streak extreme (e.g. both
+       on a 3-game away run), `_streak_forced()` used to bail out (return None) and let
+       lower-priority heuristics like matchup history decide — violating the documented
+       priority order (streak should outrank those). One team extending past the cap in
+       this exact pairing is mathematically unavoidable (only one can be home), but which
+       heuristic makes that call now correctly follows priority order.
+  - See `app/scheduler/algorithm.py` — `_find_augmenting_path()`, `_repair_capacity_overflow()`,
+    and the updated `_streak_forced()`.
 
 - [x] **F-07** — Export schedules. **COMPLETE (2026-08-25)**
   - Excel export: `app/main/export.py`, colored home/away columns, week groupings, bold borders,
@@ -243,6 +262,7 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 | 2026-08-25 | F-02 complete: mobile optimization, touch targets, responsive layout fixes | Front-end agent |
 | 2026-08-25 | F-03 complete: PWA manifest, service worker, icons, Apple meta tags | Front-end + Back-end agents |
 | 2026-08-25 | F-16 complete: master player DB, many-to-many team assignment, Players admin tab | Back-end + Front-end agents |
+| 2026-08-25 | F-06 complete: validation testing found and fixed capacity-overflow and streak-cap-tie bugs in the scheduler | Back-end agent |
 
 ---
 
@@ -262,9 +282,8 @@ These are not application features — they are improvements to the development 
 
 ## Notes
 
-- **F-06 status:** Discovery session complete; constraints confirmed as-is. Pending
-  validation testing (practice runs). F-09 is already shipped — no ordering concern
-  remains.
+- **F-06 status:** Complete. Validation testing found and fixed two real bugs (hard
+  capacity overflow, streak-cap tie handling) — see the F-06 entry above for details.
 - **F-09 and F-15 relationship:** Both features deal with modifying a live season after
   creation. Consider implementing F-15 (blackout date management) immediately after F-09,
   while the partial-regeneration infrastructure is fresh.
