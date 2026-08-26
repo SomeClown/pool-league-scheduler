@@ -727,6 +727,7 @@ def season_regenerate_partial(season_id):
 
     except Exception:
         db.session.rollback()
+        current_app.logger.exception('Partial schedule regeneration failed for season %s', season_id)
         flash('An error occurred while regenerating the schedule. No changes were saved.', 'danger')
         return redirect(url_for('main.season_detail', season_id=season_id))
 
@@ -771,6 +772,7 @@ def blackout_add(season_id):
         flash(f'Blackout date added. All round dates have been updated.', 'success')
     except Exception:
         db.session.rollback()
+        current_app.logger.exception('Failed to add blackout date for season %s', season_id)
         flash('An error occurred adding the blackout date.', 'danger')
 
     return redirect(url_for('main.season_detail', season_id=season_id))
@@ -803,6 +805,7 @@ def blackout_delete(season_id, blackout_id):
         flash('Blackout date removed. All round dates have been updated.', 'success')
     except Exception:
         db.session.rollback()
+        current_app.logger.exception('Failed to remove blackout date %s for season %s', blackout_id, season_id)
         flash('An error occurred removing the blackout date.', 'danger')
 
     return redirect(url_for('main.season_detail', season_id=season_id))
