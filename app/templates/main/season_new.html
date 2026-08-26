@@ -7,6 +7,7 @@
     <h2 class="mb-4">Create New Season</h2>
 
     <form method="POST" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <!-- League type -->
       <div class="mb-3">

@@ -79,6 +79,7 @@
               <form method="POST" action="{{ url_for('main.bar_delete', bar_id=bar.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Delete ' + {{ bar.name | tojson }} + '?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
               </form>
             </td>
@@ -140,6 +141,7 @@
               <form method="POST" action="{{ url_for('main.team_delete', team_id=team.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Delete ' + {{ team.name | tojson }} + '?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
               </form>
             </td>
@@ -178,6 +180,7 @@
                                 action="{{ url_for('main.player_unassign', team_id=team.id, player_id=player.id) }}"
                                 class="d-inline"
                                 onsubmit="return confirm('Remove ' + {{ player.name | tojson }} + ' from ' + {{ team.name | tojson }} + '?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-outline-warning">Unassign</button>
                           </form>
                         </td>
@@ -192,6 +195,7 @@
                   {% if team_available[team.id] %}
                   <form method="POST" action="{{ url_for('main.player_assign', team_id=team.id) }}"
                         class="row g-2 align-items-end mb-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="col">
                       <select name="player_id" class="form-select form-select-sm" required>
                         <option value="">— assign existing player —</option>
@@ -208,6 +212,7 @@
 
                   <form method="POST" action="{{ url_for('main.player_add', team_id=team.id) }}"
                         class="row g-2 align-items-end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="col-sm-4">
                       <input type="text" name="name" class="form-control form-control-sm"
                              placeholder="New player name *" required>
@@ -288,6 +293,7 @@
               <form method="POST" action="{{ url_for('main.player_delete', player_id=player.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Delete ' + {{ player.name | tojson }} + ' from the player database? They will be removed from all teams.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
               </form>
             </td>
@@ -363,6 +369,7 @@
               <form method="POST" action="{{ url_for('main.user_delete', user_id=user.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Delete user ' + {{ user.username | tojson }} + '?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
               </form>
               {% endif %}
@@ -412,6 +419,7 @@
               <form method="POST" action="{{ url_for('main.league_type_delete', lt_id=lt.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Delete ' + {{ lt.name | tojson }} + '?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
               </form>
             </td>
@@ -457,6 +465,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('main.bar_add') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header">
           <h5 class="modal-title">Add Bar</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -494,6 +503,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <form method="POST" id="editBarForm" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header">
           <h5 class="modal-title">Edit Bar</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -530,6 +540,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('main.team_add') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header">
           <h5 class="modal-title">Add Team</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -567,6 +578,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <form method="POST" id="editTeamForm" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header">
           <h5 class="modal-title">Edit Team</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -603,6 +615,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('main.user_add') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header">
           <h5 class="modal-title">Add User</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -640,6 +653,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <form method="POST" id="editUserForm" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header">
           <h5 class="modal-title">Edit User</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -677,6 +691,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('main.league_type_add') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header">
           <h5 class="modal-title">Add League Type</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -705,6 +720,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('main.player_add_master') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header">
           <h5 class="modal-title">Add Player</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -737,6 +753,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <form method="POST" id="editPlayerForm" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="redirect_tab" id="editPlayerRedirectTab" value="players">
         <div class="modal-header">
           <h5 class="modal-title">Edit Player</h5>
@@ -770,6 +787,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <form method="POST" id="editLeagueTypeForm" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header">
           <h5 class="modal-title">Edit League Type</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -800,6 +818,7 @@
   <div class="modal-dialog">
     <div class="modal-content border-danger">
       <form method="POST" action="{{ url_for('main.clear_all_schedules') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header bg-danger text-white">
           <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Clear All Schedules</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>

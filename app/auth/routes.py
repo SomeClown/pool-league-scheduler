@@ -7,11 +7,28 @@ Nothing fancy here — if you're looking for the interesting code, it's in
 app/main/routes.py. This is just the bouncer at the door.
 """
 
+from urllib.parse import urlparse, urljoin
+
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 
 from app.auth import bp
 from app.models import User
+
+
+def _is_safe_redirect(target):
+    """
+    Return True if target is a relative URL on this app's own host.
+
+    Guards against open-redirect attacks via the 'next' query parameter —
+    without this check, next=https://evil.com would send a freshly
+    authenticated user straight to an attacker-controlled page.
+    """
+    if not target:
+        return False
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -40,6 +57,8 @@ def login():
         if user and user.check_password(password):
             login_user(user, remember=remember)
             next_page = request.args.get('next')
+            if not _is_safe_redirect(next_page):
+                next_page = None
             return redirect(next_page or url_for('main.seasons'))
 
         # Don't say "wrong password" or "user not found" — combine them.

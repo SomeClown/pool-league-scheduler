@@ -16,6 +16,7 @@ import click
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_wtf import CSRFProtect
 from config import Config
 
 # Module-level extensions — initialized without an app instance here,
@@ -26,6 +27,7 @@ login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'warning'
+csrf = CSRFProtect()
 
 
 def create_app(config_class=Config):
@@ -46,6 +48,7 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     login_manager.init_app(app)
+    csrf.init_app(app)
 
     # Register blueprints — auth handles login/logout, main handles everything else.
     from app.auth import bp as auth_bp
@@ -199,6 +202,9 @@ def _register_cli(app):
 
                 # Step 4: rebuild players table without team_id column (SQLite
                 # cannot drop a column in place; table-rebuild is the safe path).
+                # Drop any stale players_new left behind by a prior interrupted
+                # run before creating a fresh one — makes this step safe to retry.
+                conn.execute(text('DROP TABLE IF EXISTS players_new'))
                 conn.execute(text(
                     "CREATE TABLE players_new ("
                     "  id    INTEGER PRIMARY KEY,"

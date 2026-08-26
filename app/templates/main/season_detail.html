@@ -45,6 +45,7 @@
     {% if current_user.is_admin and season.status == 'active' %}
     <form method="POST" action="{{ url_for('main.season_regenerate', season_id=season.id) }}"
           onsubmit="return confirm('Regenerate the schedule? All current matchups will be replaced.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-warning">
         <i class="bi bi-arrow-clockwise me-1"></i>Regenerate
       </button>
@@ -55,6 +56,7 @@
     </button>
     <form method="POST" action="{{ url_for('main.season_archive', season_id=season.id) }}"
           onsubmit="return confirm('Archive this season? It will become read-only.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-outline-secondary">
         <i class="bi bi-archive me-1"></i>Archive
       </button>
@@ -170,6 +172,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <form method="POST" action="{{ url_for('main.season_regenerate_partial', season_id=season.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-body">
           <p>Select the last round to keep. All matches from the following round onward will be
           replaced with a freshly generated schedule. Rounds you keep are locked in — their
@@ -216,6 +219,7 @@
           <form method="POST"
                 action="{{ url_for('main.blackout_delete', season_id=season.id, blackout_id=bd.id) }}"
                 class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-danger"
                     aria-label="Remove blackout date"
                     onclick="return confirm('Remove this blackout date? All round dates will be recalculated.')">
@@ -235,6 +239,7 @@
       <form method="POST"
             action="{{ url_for('main.blackout_add', season_id=season.id) }}"
             class="d-flex gap-2 align-items-end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
           <label for="blackoutDate" class="form-label mb-1">Add Blackout Date</label>
           <input type="date" class="form-control form-control-sm" id="blackoutDate"

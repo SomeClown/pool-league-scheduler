@@ -84,10 +84,15 @@ def generate_schedule(season, teams, bars, num_rounds=None,
                 'bye':       Team | None,
             }
     """
+    team_list = list(teams)
+    if len(team_list) < 2:
+        raise ValueError(
+            f'Cannot generate a schedule with {len(team_list)} team(s) — at least 2 required.'
+        )
+
     # Per-season table caps: bar_id → tables_used (falls back to the bar's
     # standing tables_in_use limit if not set).
     bar_caps  = {cap.bar_id: cap.tables_used for cap in season.bar_caps}
-    team_list = list(teams)
 
     # Build as many rounds as needed, repeating the round-robin with fresh
     # random shuffles each cycle so subsequent cycles vary in matchup order.

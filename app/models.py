@@ -12,7 +12,7 @@ in app/__init__.py and run 'flask db-migrate'. Yes, every time. No, there's
 no shortcut.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login_manager
@@ -242,7 +242,8 @@ class Season(db.Model):
     end_date       = db.Column(db.Date, nullable=True)
     frequency      = db.Column(db.String(20), nullable=False, default='weekly')
     status         = db.Column(db.String(20), nullable=False, default='active')  # 'active' | 'archived'
-    created_at     = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at     = db.Column(db.DateTime(timezone=True),
+                               default=lambda: datetime.now(timezone.utc))
     league_type_id = db.Column(db.Integer, db.ForeignKey('league_types.id'), nullable=True)  # nullable — pre-existing seasons have no type assigned
 
     league_type   = db.relationship('LeagueType', lazy=True)

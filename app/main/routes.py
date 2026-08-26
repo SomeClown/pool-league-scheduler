@@ -25,12 +25,14 @@ Route structure at a glance:
 """
 
 import io
-from datetime import datetime, timedelta
+import re
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 from flask import render_template, redirect, url_for, flash, request, abort, send_file, \
     send_from_directory, current_app
 from flask_login import login_required, current_user
+from sqlalchemy.orm import selectinload
 
 from app import db
 from app.main import bp
@@ -41,6 +43,11 @@ from app.scheduler.algorithm import generate_schedule
 # ---------------------------------------------------------------------------
 # Decorators and helper functions
 # ---------------------------------------------------------------------------
+
+# Whitelist of admin panel tab hash fragments — used to validate the
+# redirect_tab form field so a crafted value can't land in a redirect URL.
+_ADMIN_TABS = {'bars', 'teams', 'players', 'users', 'league-types'}
+
 
 def admin_required(f):
     """
@@ -103,6 +110,20 @@ def _count_rounds(start_date, end_date, frequency, blackout_set):
     return count
 
 
+def _safe_filename_stem(name):
+    """
+    Reduce a user-supplied name to a filesystem/header-safe stem.
+
+    Strips everything except letters, digits, dots, underscores, and hyphens,
+    collapsing whitespace to underscores. Used to build download filenames
+    from season names — a raw name could contain CR/LF or quote characters
+    that corrupt the Content-Disposition response header.
+    """
+    stem = re.sub(r'\s+', '_', name.strip())
+    stem = re.sub(r'[^A-Za-z0-9._-]', '', stem)
+    return stem or 'Season'
+
+
 def _build_rounds(season):
     """
     Assemble a season's matches and byes into an ordered dict keyed by round number.
@@ -123,10 +144,26 @@ def _build_rounds(season):
     happen with clean data, but SQLite doesn't enforce constraints by default),
     those fields are treated as empty strings in the sort key to avoid an
     AttributeError. Wibbly-wobbly data-wata.
+
+    Matches are re-queried here (rather than using season.matches directly)
+    with eager-loaded home/away teams, their players, and the bar — avoiding
+    an N+1 query pattern where each match triggers separate lookups for
+    home_team.players / away_team.players when the template renders rosters.
     """
+    matches = (
+        Match.query
+        .filter_by(season_id=season.id)
+        .options(
+            selectinload(Match.home_team).selectinload(Team.players),
+            selectinload(Match.away_team).selectinload(Team.players),
+            selectinload(Match.bar),
+        )
+        .all()
+    )
+
     rounds = {}
 
-    for match in sorted(season.matches, key=lambda m: (
+    for match in sorted(matches, key=lambda m: (
             m.round_num,
             m.bar.name       if m.bar       else '',
             m.home_team.name if m.home_team else '')):
@@ -460,7 +497,7 @@ def season_print(season_id):
     season = Season.query.get_or_404(season_id)
     rounds = _build_rounds(season)
     return render_template('main/season_print.html', season=season, rounds=rounds,
-                           now=datetime.utcnow().date())
+                           now=datetime.now(timezone.utc).date())
 
 
 @bp.route('/seasons/<int:season_id>/export')
@@ -480,7 +517,7 @@ def season_export(season_id):
     season   = Season.query.get_or_404(season_id)
     rounds   = _build_rounds(season)
     output   = build_season_excel(season, rounds)
-    filename = season.name.replace(' ', '_') + '_Schedule.xlsx'
+    filename = _safe_filename_stem(season.name) + '_Schedule.xlsx'
     return send_file(
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -503,7 +540,7 @@ def season_export_csv(season_id):
     from app.main.export import build_season_csv
     csv_file = build_season_csv(season, rounds)
 
-    safe_name = season.name.replace(' ', '_').replace('/', '-')
+    safe_name = _safe_filename_stem(season.name)
     return send_file(
         io.BytesIO(csv_file.read().encode('utf-8-sig')),
         mimetype='text/csv',
@@ -1239,6 +1276,8 @@ def player_edit(player_id):
         db.session.commit()
         flash(f'"{name}" updated.', 'success')
     tab = request.form.get('redirect_tab', 'players')
+    if tab not in _ADMIN_TABS:
+        tab = 'players'
     return redirect(url_for('main.admin') + '#' + tab)
 
 
