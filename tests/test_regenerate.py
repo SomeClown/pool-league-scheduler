@@ -89,8 +89,19 @@ def test_regenerate_partial_preserves_frozen_rounds_and_continues_alternation(
 
     response = admin_client.post(
         '/seasons/{0}/regenerate-partial'.format(season_id),
-        data={'freeze_through_round': '4'})
-    assert response.status_code == 302
+        data={'freeze_through_round': '4'}, follow_redirects=True)
+    assert response.status_code == 200
+    # The route wraps the whole regenerate-and-commit in a bare
+    # `except Exception:` that rolls back and flashes a generic error on
+    # ANY failure inside it (including, notably, a SQLAlchemy warning
+    # escalated to an exception — see pytest.ini's targeted SAWarning
+    # filter). Content-only assertions can't tell "genuinely regenerated"
+    # apart from "silently rolled back" in this deterministic 2-team
+    # scenario (rollback reproduces byte-identical content to a successful
+    # regenerate here), so the success flash is the one part of the
+    # response that actually distinguishes the two outcomes.
+    assert b'Schedule regenerated from round 5 onward.' in response.data
+    assert b'An error occurred while regenerating the schedule.' not in response.data
 
     with app.app_context():
         after = {
@@ -149,8 +160,10 @@ def test_regenerate_partial_actually_reruns_the_scheduler_for_the_tail(
         random.seed(seed)
         response = admin_client.post(
             '/seasons/{0}/regenerate-partial'.format(season_id),
-            data={'freeze_through_round': '3'})
-        assert response.status_code == 302
+            data={'freeze_through_round': '3'}, follow_redirects=True)
+        assert response.status_code == 200
+        assert b'Schedule regenerated from round 4 onward.' in response.data
+        assert b'An error occurred while regenerating the schedule.' not in response.data
         with app.app_context():
             tail = sorted(
                 (m.round_num, m.home_team_id, m.away_team_id)

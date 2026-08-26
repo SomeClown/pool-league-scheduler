@@ -681,6 +681,19 @@ def season_regenerate_partial(season_id):
         )
         db.session.flush()
 
+        # The tail matches/byes loaded earlier via _build_rounds() are still
+        # registered in the session's identity map even though the raw SQL
+        # DELETEs above just removed their rows. SQLite recycles rowids, so
+        # the new Match/Bye rows we're about to insert can land on the same
+        # ids and collide with those stale entries at flush time. Expunge
+        # them now so their identities are freed before the new rows go in.
+        for round_num, round_data in rounds.items():
+            if round_num > freeze_through_round:
+                for match in round_data['matches']:
+                    db.session.expunge(match)
+                if round_data['bye']:
+                    db.session.expunge(round_data['bye'])
+
         schedule = generate_schedule(
             season, season.teams, bars,
             num_rounds=remaining_rounds,
