@@ -814,8 +814,16 @@ def admin():
     teams.sort(key=lambda t: (t.number is None, t.number or 0, t.name))
     users        = User.query.order_by(User.username).all()
     league_types = LeagueType.query.order_by(LeagueType.sort_order, LeagueType.name).all()
+    all_players  = Player.query.order_by(Player.name).all()
+    # Build per-team list of players NOT already assigned (for assign dropdown).
+    assigned_per_team = {t.id: {p.id for p in t.players} for t in teams}
+    team_available = {
+        t.id: [p for p in all_players if p.id not in assigned_per_team[t.id]]
+        for t in teams
+    }
     return render_template('main/admin.html', bars=bars, teams=teams, users=users,
-                           league_types=league_types)
+                           league_types=league_types, all_players=all_players,
+                           team_available=team_available)
 
 
 # --- Bars ---
@@ -1145,21 +1153,73 @@ def league_type_delete(lt_id):
 # Player admin routes
 # ---------------------------------------------------------------------------
 
-@bp.route('/admin/teams/<int:team_id>/players/add', methods=['POST'])
+@bp.route('/admin/players/add', methods=['POST'])
 @login_required
 @admin_required
-def player_add(team_id):
-    """Add a player to a team's roster."""
-    team = Team.query.get_or_404(team_id)
+def player_add_master():
+    """Create a player in the master player database (no team assignment)."""
     name = request.form.get('name', '').strip()
     if not name:
         flash('Player name is required.', 'danger')
     else:
         email = request.form.get('email', '').strip() or None
         phone = request.form.get('phone', '').strip() or None
-        db.session.add(Player(name=name, email=email, phone=phone, team_id=team.id))
+        db.session.add(Player(name=name, email=email, phone=phone))
+        db.session.commit()
+        flash(f'"{name}" added to player database.', 'success')
+    return redirect(url_for('main.admin') + '#players')
+
+
+@bp.route('/admin/teams/<int:team_id>/players/add', methods=['POST'])
+@login_required
+@admin_required
+def player_add(team_id):
+    """Create a new player and assign them to a team in one step."""
+    team = Team.query.get_or_404(team_id)
+    name = request.form.get('name', '').strip()
+    if not name:
+        flash('Player name is required.', 'danger')
+    else:
+        email  = request.form.get('email', '').strip() or None
+        phone  = request.form.get('phone', '').strip() or None
+        player = Player(name=name, email=email, phone=phone)
+        db.session.add(player)
+        team.players.append(player)
         db.session.commit()
         flash(f'"{name}" added to {team.name}.', 'success')
+    return redirect(url_for('main.admin') + '#teams')
+
+
+@bp.route('/admin/teams/<int:team_id>/players/assign', methods=['POST'])
+@login_required
+@admin_required
+def player_assign(team_id):
+    """Assign an existing master-DB player to a team."""
+    team      = Team.query.get_or_404(team_id)
+    player_id = request.form.get('player_id', type=int)
+    player    = Player.query.get_or_404(player_id) if player_id else None
+    if not player:
+        flash('Select a player to assign.', 'danger')
+    elif player in team.players:
+        flash(f'"{player.name}" is already on {team.name}.', 'warning')
+    else:
+        team.players.append(player)
+        db.session.commit()
+        flash(f'"{player.name}" assigned to {team.name}.', 'success')
+    return redirect(url_for('main.admin') + '#teams')
+
+
+@bp.route('/admin/teams/<int:team_id>/players/<int:player_id>/unassign', methods=['POST'])
+@login_required
+@admin_required
+def player_unassign(team_id, player_id):
+    """Remove a player from one team without deleting them from the master database."""
+    team   = Team.query.get_or_404(team_id)
+    player = Player.query.get_or_404(player_id)
+    if player in team.players:
+        team.players.remove(player)
+        db.session.commit()
+        flash(f'"{player.name}" removed from {team.name}.', 'success')
     return redirect(url_for('main.admin') + '#teams')
 
 
@@ -1178,20 +1238,21 @@ def player_edit(player_id):
         player.phone = request.form.get('phone', '').strip() or None
         db.session.commit()
         flash(f'"{name}" updated.', 'success')
-    return redirect(url_for('main.admin') + '#teams')
+    tab = request.form.get('redirect_tab', 'players')
+    return redirect(url_for('main.admin') + '#' + tab)
 
 
 @bp.route('/admin/players/<int:player_id>/delete', methods=['POST'])
 @login_required
 @admin_required
 def player_delete(player_id):
-    """Remove a player from a team's roster."""
+    """Delete a player from the master database, removing all team assignments."""
     player = Player.query.get_or_404(player_id)
     name   = player.name
     db.session.delete(player)
     db.session.commit()
-    flash(f'"{name}" removed.', 'success')
-    return redirect(url_for('main.admin') + '#teams')
+    flash(f'"{name}" deleted from player database.', 'success')
+    return redirect(url_for('main.admin') + '#players')
 
 
 @bp.route('/admin/clear-schedules', methods=['POST'])

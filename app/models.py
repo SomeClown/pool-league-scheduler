@@ -131,6 +131,16 @@ class LeagueType(db.Model):
         return f'<LeagueType {self.name}>'
 
 
+# Many-to-many join table for player ↔ team assignments. Defined before Team
+# so the Team.players relationship can reference it by object. String FK
+# references ('players.id', 'teams.id') are resolved lazily by SQLAlchemy.
+player_teams = db.Table(
+    'player_teams',
+    db.Column('player_id', db.Integer, db.ForeignKey('players.id'), primary_key=True),
+    db.Column('team_id',   db.Integer, db.ForeignKey('teams.id'),   primary_key=True),
+)
+
+
 class Team(db.Model):
     """
     Represents a pool league team.
@@ -149,7 +159,8 @@ class Team(db.Model):
     name   = db.Column(db.String(100), nullable=False, unique=True)
     bar_id = db.Column(db.Integer, db.ForeignKey('bars.id'), nullable=False)
 
-    players = db.relationship('Player', backref='team', cascade='all, delete-orphan',
+    players = db.relationship('Player', secondary=player_teams,
+                              backref=db.backref('teams', lazy=True),
                               lazy=True, order_by='Player.name')
 
     @property
@@ -169,20 +180,23 @@ class Team(db.Model):
 
 class Player(db.Model):
     """
-    An individual player on a team's roster.
+    An individual player in the master player database.
 
-    Players are publicly visible — no auth guard on schedule views. Name is
-    required; email and phone are optional contact fields. Cascade deletion
-    is set on Team.players so deleting a team also removes all its players.
+    Players exist independently of any team. A player can be assigned to
+    multiple teams via the player_teams join table (Team.players / Player.teams).
+    Name is required; email and phone are optional contact fields. Players are
+    publicly visible — no auth guard on schedule views.
+
+    Deleting a player removes all their team assignments automatically (the ORM
+    cleans up player_teams rows before deleting the player row).
     """
 
     __tablename__ = 'players'
 
-    id      = db.Column(db.Integer, primary_key=True)
-    name    = db.Column(db.String(100), nullable=False)
-    email   = db.Column(db.String(200), nullable=True)
-    phone   = db.Column(db.String(50),  nullable=True)
-    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
+    id    = db.Column(db.Integer, primary_key=True)
+    name  = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(200), nullable=True)
+    phone = db.Column(db.String(50),  nullable=True)
 
     def __repr__(self):
         return f'<Player {self.name}>'

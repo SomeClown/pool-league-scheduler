@@ -18,6 +18,12 @@
     </button>
   </li>
   <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-players-btn" data-bs-toggle="tab"
+            data-bs-target="#tab-players" type="button" role="tab">
+      Players <span class="badge bg-secondary ms-1">{{ all_players | length }}</span>
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
     <button class="nav-link" id="tab-users-btn" data-bs-toggle="tab"
             data-bs-target="#tab-users" type="button" role="tab">
       Users <span class="badge bg-secondary ms-1">{{ users | length }}</span>
@@ -164,13 +170,15 @@
                                   data-player-id="{{ player.id }}"
                                   data-name="{{ player.name }}"
                                   data-email="{{ player.email or '' }}"
-                                  data-phone="{{ player.phone or '' }}">
+                                  data-phone="{{ player.phone or '' }}"
+                                  data-redirect-tab="teams">
                             Edit
                           </button>
-                          <form method="POST" action="{{ url_for('main.player_delete', player_id=player.id) }}"
+                          <form method="POST"
+                                action="{{ url_for('main.player_unassign', team_id=team.id, player_id=player.id) }}"
                                 class="d-inline"
-                                onsubmit="return confirm('Remove ' + {{ player.name | tojson }} + '?')">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                onsubmit="return confirm('Remove ' + {{ player.name | tojson }} + ' from ' + {{ team.name | tojson }} + '?')">
+                            <button type="submit" class="btn btn-sm btn-outline-warning">Unassign</button>
                           </form>
                         </td>
                       </tr>
@@ -178,13 +186,31 @@
                     </tbody>
                   </table>
                   {% else %}
-                  <p class="text-muted small mb-2">No players yet.</p>
+                  <p class="text-muted small mb-2">No players on this team.</p>
                   {% endif %}
+
+                  {% if team_available[team.id] %}
+                  <form method="POST" action="{{ url_for('main.player_assign', team_id=team.id) }}"
+                        class="row g-2 align-items-end mb-2">
+                    <div class="col">
+                      <select name="player_id" class="form-select form-select-sm" required>
+                        <option value="">— assign existing player —</option>
+                        {% for p in team_available[team.id] %}
+                        <option value="{{ p.id }}">{{ p.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-auto">
+                      <button type="submit" class="btn btn-sm btn-outline-primary">Assign</button>
+                    </div>
+                  </form>
+                  {% endif %}
+
                   <form method="POST" action="{{ url_for('main.player_add', team_id=team.id) }}"
                         class="row g-2 align-items-end">
                     <div class="col-sm-4">
                       <input type="text" name="name" class="form-control form-control-sm"
-                             placeholder="Name *" required>
+                             placeholder="New player name *" required>
                     </div>
                     <div class="col-sm-4">
                       <input type="email" name="email" class="form-control form-control-sm"
@@ -195,7 +221,8 @@
                              placeholder="Phone (optional)">
                     </div>
                     <div class="col-sm-1">
-                      <button type="submit" class="btn btn-sm btn-primary w-100" aria-label="Add player">
+                      <button type="submit" class="btn btn-sm btn-primary w-100"
+                              aria-label="Create and assign player">
                         <i class="bi bi-plus-lg" aria-hidden="true"></i>
                       </button>
                     </div>
@@ -210,6 +237,67 @@
     </div>
     {% else %}
     <p class="text-muted">No teams added yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- ── PLAYERS ── -->
+  <div class="tab-pane fade" id="tab-players" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">Players</h5>
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addPlayerModal">
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add Player
+      </button>
+    </div>
+
+    {% if all_players %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th class="d-none d-sm-table-cell">Email</th>
+            <th class="d-none d-md-table-cell">Phone</th>
+            <th class="d-none d-lg-table-cell">Teams</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for player in all_players %}
+          <tr>
+            <td class="fw-semibold">
+              {{ player.name }}
+              <div class="d-lg-none text-muted small mt-1">
+                {{ player.teams | map(attribute='name') | join(', ') or 'No teams' }}
+              </div>
+            </td>
+            <td class="text-muted small d-none d-sm-table-cell">{{ player.email or '—' }}</td>
+            <td class="text-muted small d-none d-md-table-cell">{{ player.phone or '—' }}</td>
+            <td class="text-muted small d-none d-lg-table-cell">
+              {{ player.teams | map(attribute='name') | join(', ') or '—' }}
+            </td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-secondary me-1"
+                      data-bs-toggle="modal" data-bs-target="#editPlayerModal"
+                      data-player-id="{{ player.id }}"
+                      data-name="{{ player.name }}"
+                      data-email="{{ player.email or '' }}"
+                      data-phone="{{ player.phone or '' }}"
+                      data-redirect-tab="players">
+                Edit
+              </button>
+              <form method="POST" action="{{ url_for('main.player_delete', player_id=player.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Delete ' + {{ player.name | tojson }} + ' from the player database? They will be removed from all teams.')">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No players in the database yet.</p>
     {% endif %}
   </div>
 
@@ -612,11 +700,44 @@
   </div>
 </div>
 
+<!-- Add Player (master database) -->
+<div class="modal fade" id="addPlayerModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('main.player_add_master') }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Player</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required autofocus>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control">
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Phone</label>
+            <input type="tel" name="phone" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Player</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- Edit Player -->
 <div class="modal fade" id="editPlayerModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <form method="POST" id="editPlayerForm" action="">
+        <input type="hidden" name="redirect_tab" id="editPlayerRedirectTab" value="players">
         <div class="modal-header">
           <h5 class="modal-title">Edit Player</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -704,7 +825,7 @@
   // Activate tab from URL hash on page load
   (function () {
     const hash = window.location.hash;
-    const map = { '#bars': 'tab-bars-btn', '#teams': 'tab-teams-btn', '#users': 'tab-users-btn', '#league-types': 'league-types-tab' };
+    const map = { '#bars': 'tab-bars-btn', '#teams': 'tab-teams-btn', '#players': 'tab-players-btn', '#users': 'tab-users-btn', '#league-types': 'league-types-tab' };
     const btnId = map[hash];
     if (btnId) {
       const btn = document.getElementById(btnId);
@@ -749,10 +870,11 @@
   // Populate Edit Player modal
   document.getElementById('editPlayerModal').addEventListener('show.bs.modal', function (e) {
     const btn = e.relatedTarget;
-    document.getElementById('editPlayerName').value  = btn.dataset.name;
-    document.getElementById('editPlayerEmail').value = btn.dataset.email;
-    document.getElementById('editPlayerPhone').value = btn.dataset.phone;
-    document.getElementById('editPlayerForm').action = '/admin/players/' + btn.dataset.playerId + '/edit';
+    document.getElementById('editPlayerName').value        = btn.dataset.name;
+    document.getElementById('editPlayerEmail').value       = btn.dataset.email;
+    document.getElementById('editPlayerPhone').value       = btn.dataset.phone;
+    document.getElementById('editPlayerRedirectTab').value = btn.dataset.redirectTab || 'players';
+    document.getElementById('editPlayerForm').action       = '/admin/players/' + btn.dataset.playerId + '/edit';
   });
 </script>
 {% endblock %}

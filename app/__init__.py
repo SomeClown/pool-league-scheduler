@@ -158,6 +158,65 @@ def _register_cli(app):
                     except Exception:
                         click.echo(f'Column "{column}" in "{table}" already exists — skipping.')
 
+    @app.cli.command('migrate-f16')
+    def migrate_f16():
+        """
+        Migrate Player model from per-team to master database with many-to-many assignment.
+
+        Usage: flask migrate-f16
+
+        Creates the player_teams join table, migrates existing team_id assignments
+        into it, then rebuilds the players table without the team_id column. Safe
+        to re-run: checks whether team_id still exists before doing the rebuild.
+        """
+        from sqlalchemy import text
+        with app.app_context():
+            with db.engine.connect() as conn:
+                # Step 1: create player_teams join table
+                conn.execute(text(
+                    "CREATE TABLE IF NOT EXISTS player_teams ("
+                    "  player_id INTEGER NOT NULL REFERENCES players(id),"
+                    "  team_id   INTEGER NOT NULL REFERENCES teams(id),"
+                    "  PRIMARY KEY (player_id, team_id)"
+                    ")"
+                ))
+                conn.commit()
+                click.echo('player_teams table ready.')
+
+                # Step 2: check whether players.team_id still exists
+                cols = [row[1] for row in conn.execute(text('PRAGMA table_info(players)'))]
+                if 'team_id' not in cols:
+                    click.echo('players.team_id already removed — nothing to do.')
+                    return
+
+                # Step 3: copy existing assignments into join table
+                conn.execute(text(
+                    "INSERT OR IGNORE INTO player_teams (player_id, team_id) "
+                    "SELECT id, team_id FROM players WHERE team_id IS NOT NULL"
+                ))
+                conn.commit()
+                click.echo('Existing player-team assignments migrated.')
+
+                # Step 4: rebuild players table without team_id column (SQLite
+                # cannot drop a column in place; table-rebuild is the safe path).
+                conn.execute(text(
+                    "CREATE TABLE players_new ("
+                    "  id    INTEGER PRIMARY KEY,"
+                    "  name  VARCHAR(100) NOT NULL,"
+                    "  email VARCHAR(200),"
+                    "  phone VARCHAR(50)"
+                    ")"
+                ))
+                conn.execute(text(
+                    "INSERT INTO players_new (id, name, email, phone) "
+                    "SELECT id, name, email, phone FROM players"
+                ))
+                conn.execute(text('DROP TABLE players'))
+                conn.execute(text('ALTER TABLE players_new RENAME TO players'))
+                conn.commit()
+                click.echo('players table rebuilt (team_id column removed).')
+                click.echo('F-16 migration complete.')
+
     @app.cli.command('seed-league-types')
     def seed_league_types():
         """
