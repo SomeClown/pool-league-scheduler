@@ -225,8 +225,10 @@ Work is executed by specialized agents coordinated by the master Claude instance
 All agents are controlled from the master instance. Tasks are assigned serially
 unless otherwise directed.
 
-Note: The UI/UX agent (M-02) does not yet exist as a defined agent type. It needs
-to be created as `.claude/agents/uiux.md` before F-01 work begins.
+Note (2026-08-26): project-local agent definitions (`.claude/agents/investigate.md`,
+`.claude/agents/uiux.md`) were retired (commit `2b96492`) in favor of a global,
+user-level agent team; `.claude/` is now gitignored as machine-local state. See M-01/M-02
+below — both are still functionally complete, just no longer shipped as files in this repo.
 
 ---
 
@@ -263,6 +265,11 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 | 2026-08-25 | F-03 complete: PWA manifest, service worker, icons, Apple meta tags | Front-end + Back-end agents |
 | 2026-08-25 | F-16 complete: master player DB, many-to-many team assignment, Players admin tab | Back-end + Front-end agents |
 | 2026-08-25 | F-06 complete: validation testing found and fixed capacity-overflow and streak-cap-tie bugs in the scheduler | Back-end agent |
+| 2026-08-26 | QA hardening: migrated all 27 legacy `Query.get`/`get_or_404` call sites to `db.session.get`/`db.get_or_404`; bootstrapped the pytest suite (36 tests) with temp-DB isolation | Back-end agent |
+| 2026-08-26 | Test suite expanded to 65 tests (404 coverage for converted routes, enforced DB isolation, warnings-as-errors policy in `pytest.ini`) | Back-end agent |
+| 2026-08-26 | Test suite expanded to 110 tests (exports, regeneration, blackouts, admin guards, CLI, CSRF) | Back-end agent |
+| 2026-08-26 | Fixed identity-map collision in `season_regenerate_partial` (SQLite rowid recycling colliding with stale identity-map entries for deleted tail Match/Bye rows); added a targeted `SAWarning`-as-error regression guard in `pytest.ini` | Back-end agent |
+| 2026-08-26 | Three previously-silent exception handlers (`season_regenerate_partial`, `blackout_add`, `blackout_delete`) now log tracebacks via `current_app.logger.exception` | Back-end agent |
 
 ---
 
@@ -271,12 +278,17 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 These are not application features — they are improvements to the development workflow itself.
 
 - [x] **M-01** — Custom investigation agent. **COMPLETE (2026-08-25)**
-  - `.claude/agents/investigate.md`: read-only agent that reads key files and produces
-    a structured summary (feature status, data model, route inventory, migration state,
-    coupling map, gotchas). Invoke at the start of any cold session before making changes.
+  - Read-only agent that reads key files and produces a structured summary (feature
+    status, data model, route inventory, migration state, coupling map, gotchas).
+    Invoke at the start of any cold session before making changes.
+  - Originally shipped as `.claude/agents/investigate.md`; retired from this repo
+    2026-08-26 (commit `2b96492`) in favor of a global, user-level agent — `.claude/`
+    is now gitignored as machine-local state, so this file no longer lives in-repo.
 
-- [x] **M-02** — UI/UX agent (`.claude/agents/uiux.md`). **COMPLETE (2026-08-25)**
+- [x] **M-02** — UI/UX agent. **COMPLETE (2026-08-25)**
   - Read-only advisory agent for visual design decisions. Consulted during F-01 planning.
+  - Originally shipped as `.claude/agents/uiux.md`; retired from this repo 2026-08-26
+    (commit `2b96492`) alongside M-01, same reason.
 
 ---
 
