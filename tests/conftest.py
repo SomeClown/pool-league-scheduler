@@ -15,13 +15,15 @@ All code here must stay Python 3.8 compatible — the production server runs 3.8
 import pytest
 
 from app import create_app, db
-from app.models import Bar, Team, User
+from app.models import Bar, Season, Team, User
 
 
 ADMIN_USERNAME = 'test-admin'
 ADMIN_PASSWORD = 'admin-secret-pw'
 VIEWER_USERNAME = 'test-viewer'
 VIEWER_PASSWORD = 'viewer-secret-pw'
+SUPERUSER_USERNAME = 'test-superuser'
+SUPERUSER_PASSWORD = 'superuser-secret-pw'
 
 
 class BaseTestConfig:
@@ -120,6 +122,16 @@ def viewer_client(app):
 
 
 @pytest.fixture
+def superuser_client(app):
+    """A test client logged in as the superuser (role='admin', is_superuser=True)."""
+    create_user(app, SUPERUSER_USERNAME, SUPERUSER_PASSWORD, role='admin', is_superuser=True)
+    test_client = app.test_client()
+    response = login(test_client, SUPERUSER_USERNAME, SUPERUSER_PASSWORD)
+    assert response.status_code == 302, 'superuser login failed during fixture setup'
+    return test_client
+
+
+@pytest.fixture
 def sample_league(app):
     """
     Two bars and four teams, two per bar.
@@ -152,3 +164,50 @@ def sample_league(app):
             'team_ids': [t.id for t in teams],
             'team_names': [t.name for t in teams],
         }
+
+
+@pytest.fixture
+def create_season(admin_client, app):
+    """
+    Factory fixture: POST the /seasons/new form and return the new season's
+    id. Centralizes the form-shape boilerplate that would otherwise be
+    copy-pasted across every wave-3 test file that needs a real, persisted,
+    fully-scheduled season to act on (export, regenerate, blackouts, ...).
+
+    Raises an assertion error immediately if creation didn't redirect (i.e.
+    validation failed), so a broken test setup fails at the fixture call
+    site rather than silently producing a missing season deeper in the test.
+    """
+    def _create(name, team_ids, start_date='2026-09-01', frequency='weekly',
+                num_weeks=None, end_date=None, blackout_dates=None,
+                bar_tables=None, league_type_id=None):
+        form = {
+            'name': name,
+            'start_date': start_date,
+            'frequency': frequency,
+            'team_ids': [str(tid) for tid in team_ids],
+        }
+        if num_weeks is not None:
+            form['length_mode'] = 'num_weeks'
+            form['num_weeks'] = str(num_weeks)
+        else:
+            form['length_mode'] = 'end_date'
+            form['end_date'] = end_date
+        if blackout_dates:
+            form['blackout_date'] = list(blackout_dates)
+        if league_type_id is not None:
+            form['league_type_id'] = str(league_type_id)
+        if bar_tables:
+            for bar_id, tables in bar_tables.items():
+                form['bar_tables_{0}'.format(bar_id)] = str(tables)
+
+        response = admin_client.post('/seasons/new', data=form)
+        assert response.status_code == 302, (
+            'season creation failed during test setup (form re-rendered '
+            'instead of redirecting): {0!r}'.format(response.data[:500]))
+
+        with app.app_context():
+            season = Season.query.filter_by(name=name).first()
+            assert season is not None, 'season row not found after creation'
+            return season.id
+    return _create

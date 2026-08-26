@@ -344,3 +344,51 @@ def test_biweekly_frequency_steps_two_weeks():
 
     assert [rnd['date'] for rnd in schedule] == [
         start, start + timedelta(weeks=2), start + timedelta(weeks=4)]
+
+
+# ---------------------------------------------------------------------------
+# Soft priority: matchup-history flip on repeat encounters
+# ---------------------------------------------------------------------------
+
+def test_matchup_history_flips_home_away_on_repeat_encounters():
+    """
+    Priority #3 in the documented order (see CLAUDE.md / this module's
+    docstring): once a pair has a recorded prior meeting, home/away flips
+    relative to that meeting.
+
+    Two teams sharing one bar, ample capacity, many rounds: the same pair
+    meets every single round. Under strict alternation, each team's signed
+    streak never exceeds 1 in either direction, so the streak-cap priority
+    (which outranks matchup history) can never fire — matchup history is
+    the sole determinant from round 2 onward. That makes "home/away
+    alternates every round" a deterministic guarantee here, independent of
+    the seed (which only decides who's home in round 1, the one encounter
+    with no history yet). Checked across several seeds for extra confidence.
+    """
+    for seed in range(5):
+        random.seed(seed)
+        teams, bars = make_league([2], tables_per_bar=10)
+        schedule = generate_schedule(FakeSeason(), teams, bars, num_rounds=10)
+
+        homes = [rnd['matches'][0][0].id for rnd in schedule]
+        assert all(homes[i] != homes[i + 1] for i in range(len(homes) - 1)), (
+            'seed {0}: matchup history must flip home/away on every repeat '
+            'encounter'.format(seed))
+
+
+# ---------------------------------------------------------------------------
+# Soft priority: bar coverage (deliberately not tested here — see report)
+# ---------------------------------------------------------------------------
+#
+# "Prefer bars with no match yet this round" (priority #4) is a soft,
+# best-effort goal, not a guarantee — the algorithm's own module docstring
+# says as much ("mathematically impossible to guarantee... The scheduler
+# does its best"). Any assertion strong enough to be meaningful (e.g. "every
+# bar with an eligible team gets a home match every round") depends on which
+# pairs the round-robin shuffle happens to produce that round, which isn't
+# controllable through the public interface without either pinning internal
+# shuffle behavior (brittle — couples the test to implementation, not
+# behavior) or accepting a statistical/threshold assertion (fuzzy — the
+# threshold itself would be an arbitrary guess, and a bad one risks
+# flaking). Per the "a flaky test is worse than a gap" guidance, this is
+# left undocumented-by-test and flagged here instead.
