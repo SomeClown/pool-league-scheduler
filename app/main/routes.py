@@ -374,7 +374,7 @@ def season_new():
             errors.append('Start date is required.')
         if len(team_ids) < 2:
             errors.append('At least 2 teams must be selected.')
-        if league_type_id is not None and not LeagueType.query.get(league_type_id):
+        if league_type_id is not None and not db.session.get(LeagueType, league_type_id):
             errors.append('Invalid league type.')
 
         start_date = None
@@ -480,7 +480,7 @@ def season_detail(season_id):
     Loads the season, builds the rounds dict via _build_rounds(), and
     passes it to the template. This is the main "look at the schedule" page.
     """
-    season = Season.query.get_or_404(season_id)
+    season = db.get_or_404(Season, season_id)
     rounds = _build_rounds(season)
     return render_template('main/season_detail.html', season=season, rounds=rounds)
 
@@ -494,7 +494,7 @@ def season_print(season_id):
     print dialog on desktop. On mobile, a Print button is shown instead
     since auto-triggering print on mobile is more annoying than helpful.
     """
-    season = Season.query.get_or_404(season_id)
+    season = db.get_or_404(Season, season_id)
     rounds = _build_rounds(season)
     return render_template('main/season_print.html', season=season, rounds=rounds,
                            now=datetime.now(timezone.utc).date())
@@ -514,7 +514,7 @@ def season_export(season_id):
     underscores because spaces in filenames are uncivilized.
     """
     from app.main.export import build_season_excel
-    season   = Season.query.get_or_404(season_id)
+    season   = db.get_or_404(Season, season_id)
     rounds   = _build_rounds(season)
     output   = build_season_excel(season, rounds)
     filename = _safe_filename_stem(season.name) + '_Schedule.xlsx'
@@ -534,7 +534,7 @@ def season_export_csv(season_id):
     Public route — no login required. Calls build_season_csv() and streams
     the result as a text/csv attachment. Filename is derived from the season name.
     """
-    season = Season.query.get_or_404(season_id)
+    season = db.get_or_404(Season, season_id)
     rounds = _build_rounds(season)
 
     from app.main.export import build_season_csv
@@ -563,7 +563,7 @@ def season_compact(season_id):
     in Python rather than in the template, because Jinja2's sort filter can't
     handle None values mixed with integers without a meltdown.
     """
-    season       = Season.query.get_or_404(season_id)
+    season       = db.get_or_404(Season, season_id)
     rounds       = _build_rounds(season)
     sorted_teams = sorted(season.teams, key=lambda t: (t.number is None, t.number or 0, t.name))
     return render_template('main/season_compact.html', season=season, rounds=rounds,
@@ -585,7 +585,7 @@ def season_regenerate(season_id):
     Archived seasons cannot be regenerated — they're locked for historical
     accuracy. This is by design, not an oversight.
     """
-    season = Season.query.get_or_404(season_id)
+    season = db.get_or_404(Season, season_id)
 
     if season.status == 'archived':
         flash('Archived seasons cannot be regenerated.', 'danger')
@@ -639,7 +639,7 @@ def season_regenerate_partial(season_id):
     """
     from sqlalchemy import text
 
-    season = Season.query.get_or_404(season_id)
+    season = db.get_or_404(Season, season_id)
 
     if season.status != 'active':
         flash('Only active seasons can be partially regenerated.', 'danger')
@@ -734,7 +734,7 @@ def blackout_add(season_id):
     row, then calls _remap_dates() to shift all round dates around the new
     blackout. Commits and redirects back to the season detail page.
     """
-    season = Season.query.get_or_404(season_id)
+    season = db.get_or_404(Season, season_id)
     if season.status != 'active':
         flash('Blackout dates can only be modified on active seasons.', 'warning')
         return redirect(url_for('main.season_detail', season_id=season_id))
@@ -773,8 +773,8 @@ def blackout_delete(season_id, blackout_id):
     Deletes the BlackoutDate row, then calls _remap_dates() so that the round
     previously pushed past this blackout can shift back to its natural date.
     """
-    season   = Season.query.get_or_404(season_id)
-    blackout = BlackoutDate.query.get_or_404(blackout_id)
+    season   = db.get_or_404(Season, season_id)
+    blackout = db.get_or_404(BlackoutDate, blackout_id)
 
     if blackout.season_id != season_id:
         abort(404)
@@ -807,7 +807,7 @@ def season_archive(season_id):
     the UI — there's no un-archive button — which is intentional. Historical
     records should stay historical.
     """
-    season        = Season.query.get_or_404(season_id)
+    season        = db.get_or_404(Season, season_id)
     season.status = 'archived'
     db.session.commit()
     flash(f'"{season.name}" has been archived.', 'success')
@@ -907,7 +907,7 @@ def bar_edit(bar_id):
     season's cap is set to won't automatically update those caps — that's
     a you-problem to sort out manually.
     """
-    bar        = Bar.query.get_or_404(bar_id)
+    bar        = db.get_or_404(Bar, bar_id)
     bar.name   = request.form.get('name', bar.name).strip() or bar.name
     bar.tables = max(1, request.form.get('tables', bar.tables, type=int))
     in_use     = request.form.get('tables_in_use', type=int)
@@ -930,7 +930,7 @@ def bar_delete(bar_id):
     This prevents orphaned team records pointing at a non-existent bar, which
     would cause the kind of database integrity issues that ruin your Monday.
     """
-    bar = Bar.query.get_or_404(bar_id)
+    bar = db.get_or_404(Bar, bar_id)
     if bar.teams:
         flash(f'Cannot delete "{bar.name}" — remove its teams first.', 'danger')
     else:
@@ -980,7 +980,7 @@ def team_edit(team_id):
     Submitting a value sets or replaces it. The number is purely cosmetic —
     it doesn't affect scheduling logic, only display.
     """
-    team         = Team.query.get_or_404(team_id)
+    team         = db.get_or_404(Team, team_id)
     team.name    = request.form.get('name', team.name).strip() or team.name
     team.bar_id  = request.form.get('bar_id', team.bar_id, type=int)
     raw_number   = request.form.get('number', '').strip()
@@ -1001,7 +1001,7 @@ def team_delete(team_id):
     from those seasons first (or clear the schedule data if you're starting
     fresh). This is a safety guard against orphaned match records.
     """
-    team = Team.query.get_or_404(team_id)
+    team = db.get_or_404(Team, team_id)
     if team.seasons:
         flash(f'Cannot delete "{team.name}" — it belongs to one or more seasons.', 'danger')
     else:
@@ -1060,7 +1060,7 @@ def user_edit(user_id):
 
     Password field is optional — leave it blank to keep the existing password.
     """
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     if user.is_admin and not current_user.is_superuser:
         flash('Only the superuser can edit admin accounts.', 'danger')
         return redirect(url_for('main.admin') + '#users')
@@ -1099,7 +1099,7 @@ def user_delete(user_id):
 
     Everyone else is fair game.
     """
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     if user.id == current_user.id:
         flash("You cannot delete your own account.", 'danger')
     elif user.is_superuser:
@@ -1150,7 +1150,7 @@ def league_type_edit(lt_id):
     Name must be non-empty and not already used by a different league type.
     Sort order is optional and may be cleared by submitting a blank value.
     """
-    lt         = LeagueType.query.get_or_404(lt_id)
+    lt         = db.get_or_404(LeagueType, lt_id)
     name       = request.form.get('name', '').strip()
     sort_order = request.form.get('sort_order', type=int)
     if not name:
@@ -1176,7 +1176,7 @@ def league_type_delete(lt_id):
     or archive those seasons first. This prevents orphaned foreign key references
     on the Season table.
     """
-    lt = LeagueType.query.get_or_404(lt_id)
+    lt = db.get_or_404(LeagueType, lt_id)
     if Season.query.filter_by(league_type_id=lt_id).first():
         flash('Cannot delete: seasons are assigned to this league type.', 'danger')
     else:
@@ -1212,7 +1212,7 @@ def player_add_master():
 @admin_required
 def player_add(team_id):
     """Create a new player and assign them to a team in one step."""
-    team = Team.query.get_or_404(team_id)
+    team = db.get_or_404(Team, team_id)
     name = request.form.get('name', '').strip()
     if not name:
         flash('Player name is required.', 'danger')
@@ -1232,9 +1232,9 @@ def player_add(team_id):
 @admin_required
 def player_assign(team_id):
     """Assign an existing master-DB player to a team."""
-    team      = Team.query.get_or_404(team_id)
+    team      = db.get_or_404(Team, team_id)
     player_id = request.form.get('player_id', type=int)
-    player    = Player.query.get_or_404(player_id) if player_id else None
+    player    = db.get_or_404(Player, player_id) if player_id else None
     if not player:
         flash('Select a player to assign.', 'danger')
     elif player in team.players:
@@ -1251,8 +1251,8 @@ def player_assign(team_id):
 @admin_required
 def player_unassign(team_id, player_id):
     """Remove a player from one team without deleting them from the master database."""
-    team   = Team.query.get_or_404(team_id)
-    player = Player.query.get_or_404(player_id)
+    team   = db.get_or_404(Team, team_id)
+    player = db.get_or_404(Player, player_id)
     if player in team.players:
         team.players.remove(player)
         db.session.commit()
@@ -1265,7 +1265,7 @@ def player_unassign(team_id, player_id):
 @admin_required
 def player_edit(player_id):
     """Update a player's name, email, and phone."""
-    player = Player.query.get_or_404(player_id)
+    player = db.get_or_404(Player, player_id)
     name   = request.form.get('name', '').strip()
     if not name:
         flash('Player name is required.', 'danger')
@@ -1286,7 +1286,7 @@ def player_edit(player_id):
 @admin_required
 def player_delete(player_id):
     """Delete a player from the master database, removing all team assignments."""
-    player = Player.query.get_or_404(player_id)
+    player = db.get_or_404(Player, player_id)
     name   = player.name
     db.session.delete(player)
     db.session.commit()

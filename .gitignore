@@ -12,3 +12,4 @@ instance/
 .DS_Store
 CLAUDE.md
 .idea/
+.pytest_cache/
