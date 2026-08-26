@@ -98,10 +98,12 @@ back-end before UI polish; front-end redesign last.
 
 - [x] **F-05** — Maintain existing scheduling constraints and logic.
 
-- [ ] **F-06** — Revisit and refine scheduling constraints/logic.
-  - **BLOCKED** — requires a separate discovery/design session before any tasks can be
-    planned. Schedule this session before implementing F-09, since constraint changes
-    may affect the mid-season regeneration algorithm's state reconstruction logic.
+- [~] **F-06** — Revisit and refine scheduling constraints/logic.
+  - Discovery session complete (2026-08-25). Current priority order reviewed and confirmed
+    as correct: capacity hard limit → streak cap (3) → matchup history flip → bar coverage
+    → remaining capacity → streak lean / coin flip.
+  - **Pending:** validation testing — run several practice schedules and review the output
+    for fairness and correctness before closing this item.
 
 - [x] **F-07** — Export schedules. **COMPLETE (2026-08-25)**
   - Excel export: `app/main/export.py`, colored home/away columns, week groupings, bold borders,
@@ -151,18 +153,15 @@ back-end before UI polish; front-end redesign last.
   - Schedule detail shows collapsible roster rows per match (btn-link toggle, border-primary panel).
   - Excel export extended to 9 columns (Home Players / Away Players added).
 
-- [ ] **F-16** — Master player database with team assignment.
-  - Replace the current per-team player entry with a master `Player` table that exists
-    independently of any team. Admins manage players in a dedicated "Players" admin tab.
-  - Admins assign players from the master list to individual teams (many-to-one or
-    many-to-many — needs design decision: can a player be on more than one team?).
-  - On the public schedule view, a button per team (or per match) opens a list of players
-    currently rostered on that team. Matches the existing collapsible roster panel pattern.
-  - **Design decision recorded:** players can be on multiple teams simultaneously.
-    Data model: many-to-many join table `player_teams` (replaces current `Player.team_id NOT NULL`).
-    Requires a breaking migration — drop the FK column, add the join table, migrate existing data.
-  - Note: F-14 UI patterns (collapse panels, roster rows in schedule) can be reused; only
-    the data model and admin CRUD need significant rework.
+- [x] **F-16** — Master player database with team assignment. **COMPLETE (2026-08-25, commit 86854e1)**
+  - `player_teams` many-to-many join table replaces `Player.team_id NOT NULL`.
+  - `flask migrate-f16` CLI command handles the structural migration: creates join table,
+    migrates existing assignments, rebuilds `players` table without `team_id`.
+  - New Players admin tab: master list with name/email/phone/teams; Add, Edit, Delete.
+  - Delete from master cascades all team assignments; Unassign removes from one team only.
+  - Teams tab: Assign Existing dropdown (players not yet on that team) + Create & Assign form.
+  - `Team.players` / `Player.teams` many-to-many relationship; schedule views and Excel
+    export unchanged (they access `team.players` which works transparently via join table).
 
 ---
 
@@ -243,6 +242,7 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 | 2026-08-25 | M-02 complete: UI/UX agent definition written | Master (Claude) |
 | 2026-08-25 | F-02 complete: mobile optimization, touch targets, responsive layout fixes | Front-end agent |
 | 2026-08-25 | F-03 complete: PWA manifest, service worker, icons, Apple meta tags | Front-end + Back-end agents |
+| 2026-08-25 | F-16 complete: master player DB, many-to-many team assignment, Players admin tab | Back-end + Front-end agents |
 
 ---
 
@@ -266,12 +266,9 @@ These are not application features — they are improvements to the development 
 
 ## Notes
 
-- **F-06 and F-09 ordering:** F-06 (constraint revisit) must happen before F-09
-  (mid-season regeneration) is finalized, since constraint changes could affect the
-  state reconstruction logic in `_reconstruct_state()`. F-06 is currently blocked on
-  a discovery session — do not begin F-09 implementation until that session is complete,
-  or design F-09 with the understanding that algorithm changes may require a follow-up
-  adjustment pass.
+- **F-06 status:** Discovery session complete; constraints confirmed as-is. Pending
+  validation testing (practice runs). F-09 is already shipped — no ordering concern
+  remains.
 - **F-09 and F-15 relationship:** Both features deal with modifying a live season after
   creation. Consider implementing F-15 (blackout date management) immediately after F-09,
   while the partial-regeneration infrastructure is fresh.
