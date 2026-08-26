@@ -250,14 +250,10 @@ to be created as `.claude/agents/uiux.md` before F-01 work begins.
 
 These are not application features — they are improvements to the development workflow itself.
 
-- [ ] **M-01** — Custom investigation agent (`.claude/agents/investigate.md`): a reusable
-  read-only agent that onboards Claude to any codebase from cold — reads key files
-  end-to-end, produces a structured summary (architecture, data flow, coupling points,
-  gotchas), and flags at-risk areas before changes begin. Useful for new projects and
-  new sessions starting without context.
-  - Consider promoting to active: the planning session demonstrated that reading 15 files
-    cold consumes significant token budget. An investigation agent could front-load this
-    work once and cache the summary.
+- [x] **M-01** — Custom investigation agent. **COMPLETE (2026-08-25)**
+  - `.claude/agents/investigate.md`: read-only agent that reads key files and produces
+    a structured summary (feature status, data model, route inventory, migration state,
+    coupling map, gotchas). Invoke at the start of any cold session before making changes.
 
 - [x] **M-02** — UI/UX agent (`.claude/agents/uiux.md`). **COMPLETE (2026-08-25)**
   - Read-only advisory agent for visual design decisions. Consulted during F-01 planning.
