@@ -69,6 +69,11 @@
                 <i class="bi bi-key me-1"></i>Change Password
               </a>
             </li>
+            <li id="installAppItem" class="d-none">
+              <a class="dropdown-item" href="#" id="installAppLink">
+                <i class="bi bi-download me-1"></i>Install App
+              </a>
+            </li>
             <li><hr class="dropdown-divider"></li>
             <li>
               <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
@@ -102,6 +107,27 @@
   {% block content %}{% endblock %}
 </main>
 
+<div class="modal fade" id="iosInstallModal" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Install App</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>iOS doesn't allow apps to install themselves — just a couple of taps in Safari:</p>
+        <ol class="ps-3 mb-0">
+          <li class="mb-2">Tap the Share icon <i class="bi bi-box-arrow-up"></i> in Safari's toolbar</li>
+          <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
+        </ol>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Got It</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 {% block extra_js %}{% endblock %}
 <script>
@@ -110,6 +136,51 @@
       navigator.serviceWorker.register('/sw.js');
     });
   }
+
+  (function () {
+    var installItem = document.getElementById('installAppItem');
+    var installLink = document.getElementById('installAppLink');
+    if (!installItem || !installLink) return;
+
+    var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+    if (isStandalone) return;
+
+    var isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase()) && !window.MSStream;
+
+    if (isIOS) {
+      // iOS has no beforeinstallprompt API — the only path is manual
+      // Share > Add to Home Screen, so show instructions instead of a prompt.
+      installItem.classList.remove('d-none');
+      installLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        new bootstrap.Modal(document.getElementById('iosInstallModal')).show();
+      });
+      return;
+    }
+
+    var deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      installItem.classList.remove('d-none');
+    });
+
+    installLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.finally(function () {
+        deferredPrompt = null;
+        installItem.classList.add('d-none');
+      });
+    });
+
+    window.addEventListener('appinstalled', function () {
+      installItem.classList.add('d-none');
+      deferredPrompt = null;
+    });
+  })();
 </script>
 </body>
 </html>
