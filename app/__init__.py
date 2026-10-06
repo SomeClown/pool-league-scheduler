@@ -60,11 +60,52 @@ def create_app(config_class=Config):
     with app.app_context():
         # Create any tables that don't already exist. Does NOT modify existing
         # tables — for column additions, use 'flask db-migrate' instead.
-        db.create_all()
+        _create_tables_tolerating_concurrent_boot(app)
 
     _register_cli(app)
 
     return app
+
+
+def _create_tables_tolerating_concurrent_boot(app, attempts=3, wait_seconds=0.5):
+    """
+    Run db.create_all(), tolerating another process doing the same thing.
+
+    Regression note (2026-10-06): gunicorn boots 2 workers, and each one calls
+    create_app() — so on a brand-new empty database both workers inspect the
+    schema, both see no tables, and both start issuing CREATE TABLE. The loser
+    dies with OperationalError ("table ... already exists", or SQLite's
+    "database is locked" while the winner holds the write lock), gunicorn
+    reports "Worker failed to boot", and the whole container exits 3. This
+    only ever happens on a first boot against an empty database; once tables
+    exist, create_all() is a no-op for every worker.
+
+    The fix: when create_all() fails with one of those two errors, another
+    worker is (or was) mid-creation. Retry after a short wait — each retry
+    re-inspects the schema and creates only what's still missing, so the
+    losing worker picks up any tables the winner hadn't finished yet. Any
+    other error, or persistent failure after all retries, still raises: a
+    genuinely broken database should fail the boot loudly, not get swallowed.
+
+    Must be called inside an app context (create_app() provides one).
+    """
+    import time
+    from sqlalchemy.exc import OperationalError
+
+    for attempt in range(1, attempts + 1):
+        try:
+            db.create_all()
+            return
+        except OperationalError as exc:
+            message = str(exc).lower()
+            racing = ('already exists' in message
+                      or 'database is locked' in message)
+            if not racing or attempt == attempts:
+                raise
+            app.logger.info(
+                'create_all() collided with a concurrent worker '
+                '(attempt %d/%d), retrying: %s', attempt, attempts, exc)
+            time.sleep(wait_seconds)
 
 
 def _register_cli(app):
