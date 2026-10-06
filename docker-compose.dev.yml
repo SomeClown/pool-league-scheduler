@@ -1,0 +1,24 @@
+# Local dev overlay: `docker compose -f docker-compose.yml -f
+# docker-compose.dev.yml up --build`. Builds the image from the local
+# checkout instead of pulling from GHCR, and uses a separate dev database
+# so it never touches real data.
+#
+# No env_file at all: the base file carries none (see its comment), and
+# SECRET_KEY falls back to config.py's development default, which is fine
+# here and nowhere else.
+
+services:
+  pool-league:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pool-league-scheduler:dev
+    environment:
+      DATABASE_URL: sqlite:////data/dev.db
+    volumes:
+      # ./data is created by Docker as root if missing; on Linux hosts
+      # chown it to 10002 first (macOS Docker Desktop doesn't care).
+      - ./data:/data
+    ports:
+      # 8000, not 5000: macOS's AirPlay Receiver squats on 5000.
+      - "127.0.0.1:8000:8000"

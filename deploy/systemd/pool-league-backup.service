@@ -1,0 +1,17 @@
+[Unit]
+Description=pool-league-scheduler: back up data/league.db
+# Not tied to the app container; sqlite3's .backup is online-safe (see
+# scripts/backup.sh), so this runs whether or not the container is up.
+ConditionPathExists=/opt/pool-league-scheduler/data/league.db
+
+[Service]
+Type=oneshot
+# data/ is owned by uid 10002 (the container's fixed uid -- see
+# docs/deploy.md). Running this unit as root sidesteps the permission
+# mismatch instead of fighting it with a second uid/group on the host.
+User=root
+WorkingDirectory=/opt/pool-league-scheduler
+ExecStart=/opt/pool-league-scheduler/scripts/backup.sh data/league.db data/backups
+# Output goes to the journal: `journalctl -u pool-league-backup`. (An
+# append: file under data/backups/ would fail if that directory doesn't
+# exist yet, because systemd opens it before the script can create it.)

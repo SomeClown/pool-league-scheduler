@@ -16,3 +16,8 @@ CLAUDE.md
 
 # Machine-local Claude Code state
 .claude/
+
+# Container runtime data (SQLite DB, backups) and per-environment env files
+data/
+.env.*
+!.env.example

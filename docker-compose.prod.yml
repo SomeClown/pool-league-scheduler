@@ -1,0 +1,34 @@
+# Production overlay: `docker compose -f docker-compose.yml -f
+# docker-compose.prod.yml pull && docker compose -f docker-compose.yml -f
+# docker-compose.prod.yml up -d`. scripts/deploy.sh wraps this up; see
+# docs/deploy.md for the droplet runbook (rollback by TAG, backups).
+#
+# GHCR_OWNER defaults to `someclown`; it's a variable, not hardcoded, so
+# the image reference can be redirected by .env or the shell if the repo
+# ever moves. The image is public, so no registry login is needed to pull.
+#
+# `env_file: .env` lives here, not in the base file -- see its comment for
+# why that split matters.
+
+services:
+  pool-league:
+    image: ghcr.io/${GHCR_OWNER:-someclown}/pool-league-scheduler:${TAG:-latest}
+    env_file: .env
+    environment:
+      # Load-bearing: `environment` takes precedence over `env_file`. While
+      # the old systemd deploy is still around for rollback, the shared .env
+      # keeps a DATABASE_URL pointing at the host path
+      # (/opt/pool-league-scheduler/league.db), which doesn't exist inside
+      # the container. This line forces the container path regardless.
+      # Four slashes = absolute path.
+      DATABASE_URL: sqlite:////data/league.db
+    volumes:
+      # Mount the directory, not the file: SQLite creates -journal/-wal/-shm
+      # siblings next to the database, and a single-file mount can't hold them.
+      - ./data:/data
+    ports:
+      # Loopback only. Docker publishes ports by writing iptables rules
+      # that bypass UFW, so "0.0.0.0:8000" would expose gunicorn to the
+      # internet no matter what `ufw status` says. Host nginx proxies to
+      # 127.0.0.1:8000.
+      - "127.0.0.1:8000:8000"

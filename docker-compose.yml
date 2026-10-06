@@ -1,0 +1,40 @@
+# Base compose file: settings shared by prod and dev, and nothing that's
+# environment-specific. On its own it doesn't do anything useful --
+# combine it with docker-compose.prod.yml or docker-compose.dev.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# `image` and `env_file` deliberately do NOT live here. Compose merges
+# `env_file` lists by concatenation across `-f` files, not by replacement,
+# so an overlay's env_file would add to this file's rather than replace it,
+# and a variable missing from the dev env would silently fall back to
+# prod's secret. Keeping both in the prod overlay only means there is no
+# base file for dev to inherit a prod secret from.
+#
+# This stack is fully self-contained: its own compose project, no shared
+# networks or volumes with any other container on the droplet (the
+# discord-newsbot container included). Keep it that way.
+
+services:
+  pool-league:
+    restart: unless-stopped
+    environment:
+      # gunicorn only honours X-Forwarded-* headers from addresses listed
+      # here, default 127.0.0.1. Inside a container, requests from host
+      # nginx arrive from the docker bridge gateway, not 127.0.0.1, so the
+      # default would silently drop the proxy headers. "*" is safe because
+      # the port is published on the host's loopback only (see the prod
+      # overlay): the only thing that can reach gunicorn is local nginx.
+      FORWARDED_ALLOW_IPS: "*"
+    # Root filesystem is read-only; the app's only writable spots are /data
+    # (the bind mount) and /tmp (tmpfs). Limits what a compromised process
+    # can persist.
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

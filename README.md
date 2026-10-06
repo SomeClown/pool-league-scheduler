@@ -75,24 +75,25 @@ Visit `http://127.0.0.1:5000` and log in.
 
 ---
 
-## Deployment (Ubuntu / DigitalOcean)
+## Deployment (Docker / DigitalOcean)
 
-1. Clone the repo to `/opt/pool-league-scheduler`
-2. Create a virtualenv and install dependencies
-3. Create a `.env` file with a strong `SECRET_KEY` and an absolute `DATABASE_URL` (see `config.py`)
-4. Install the systemd service: `cp deploy/pool-league.service /etc/systemd/system/`
-5. Configure nginx as a reverse proxy: `cp deploy/nginx.conf /etc/nginx/sites-available/pool-league`
-6. Enable and start both services
-7. Run `flask create-admin <username> <password>` to create the first admin user
-8. Optionally install Certbot for HTTPS: `certbot --nginx -d your-domain.com`
+Production runs as a single container behind the host's Nginx. CI builds the image on every push to `main` (and `v*` tags) and publishes it to the public GHCR package `ghcr.io/someclown/pool-league-scheduler`; the server only pulls it.
+
+- `/opt/pool-league-scheduler` is a git clone holding `docker-compose.yml` + `docker-compose.prod.yml`, a `.env` (with `SECRET_KEY`), and a `data/` directory (SQLite database and backups) owned by uid 10002, the container's user
+- The container publishes `127.0.0.1:8000` only; Nginx reverse-proxies to it (reference config in `deploy/nginx.conf`) and Certbot handles HTTPS
+- Nightly database backups run from a systemd timer (`deploy/systemd/`)
+- Create the first admin with `docker compose -f docker-compose.yml -f docker-compose.prod.yml exec pool-league flask create-admin <username> <password>`
 
 To deploy updates:
 ```bash
 cd /opt/pool-league-scheduler
-git pull
-venv/bin/pip install -r requirements.txt   # only if requirements changed
-systemctl restart pool-league
+./scripts/deploy.sh                  # pull repo, back up DB, pull image, recreate, wait for healthy
+./scripts/deploy.sh --rollback TAG   # run a specific image tag instead
 ```
+
+The full runbook (first deploy, rollback, backups and restore, logs, secret rotation, and the one-time migration from the old venv + systemd setup) is in [docs/deploy.md](docs/deploy.md). (As of 2026-10-06 the live droplet still runs the older venv + systemd setup until that migration is carried out.)
+
+To run the container locally instead of a venv: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build` serves on `http://127.0.0.1:8000` with a separate `data/dev.db`.
 
 ---
 
@@ -100,10 +101,10 @@ systemctl restart pool-league
 
 | Layer | Technology |
 |---|---|
-| Language | Python 3.8+ |
+| Language | Python 3.14 (container image `python:3.14-slim`) |
 | Web framework | Flask |
 | Database | SQLite via SQLAlchemy |
 | Authentication | Flask-Login |
 | Frontend | Bootstrap 5 + vanilla JS |
-| Process manager | Gunicorn + systemd |
+| Process manager | Gunicorn in Docker (compose) |
 | Reverse proxy | Nginx |

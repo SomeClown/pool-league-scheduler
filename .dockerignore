@@ -1,0 +1,42 @@
+# Anything here either doesn't belong in the image (secrets, local state,
+# dev tooling caches) or would just bloat it for no benefit (tests, git
+# history). The Dockerfile copies app/, config.py, run.py and
+# gunicorn.conf.py explicitly; this is the second line of defence.
+
+.git
+.github
+
+venv/
+.venv/
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+.idea/
+.claude/
+.DS_Store
+
+# Secrets and local config -- supplied at runtime via env_file, never
+# baked into a layer. .flaskenv is excluded because the Dockerfile sets
+# FLASK_APP itself.
+**/.env*
+!.env.example
+.flaskenv
+
+# Databases and local state: the real one lives in the /data bind mount.
+instance/
+**/*.db
+data/
+
+# Tests aren't needed to run the app, only to develop it.
+tests/
+
+# Deploy tooling, docs and docker artifacts don't need to be inside the image.
+deploy/
+docs/
+scripts/
+README.md
+PROJECT_PLAN.md
+CLAUDE.md
+Dockerfile
+docker-compose*.yml
+.dockerignore

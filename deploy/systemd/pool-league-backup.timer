@@ -1,0 +1,13 @@
+[Unit]
+Description=Run pool-league-scheduler's database backup nightly
+
+[Timer]
+# 03:30 America/Los_Angeles regardless of DST or the host's own timezone
+# (the droplet's clock is UTC). systemd supports a timezone suffix on
+# OnCalendar since v235; Ubuntu 24.04 ships a much newer systemd, so this
+# works as-is. Persistent=true runs a missed backup at next boot.
+OnCalendar=*-*-* 03:30:00 America/Los_Angeles
+Persistent=true
+
+[Install]
+WantedBy=timers.target
