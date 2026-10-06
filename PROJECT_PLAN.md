@@ -7,9 +7,9 @@ area. Admins configure bars, teams, and season parameters; the app produces roun
 match schedules respecting bar capacities, home venue rules, blackout dates, and
 home/away alternation across multiple cycles.
 
-**Stack:** Python 3.8+ · Flask 3.0.3 · SQLite/SQLAlchemy · Bootstrap 5 · Gunicorn/Nginx
+**Stack:** Python 3.14 (python:3.14-slim container) · Flask 3.0.3 · SQLite/SQLAlchemy · Bootstrap 5 · Gunicorn in Docker behind host Nginx
 **Repo:** github.com/SomeClown/pool-league-scheduler
-**Deployment:** DigitalOcean droplet at tubgoat.com
+**Deployment:** DigitalOcean droplet at tubgoat.com — Docker container from ghcr.io/someclown/pool-league-scheduler, deployed via compose (`docs/deploy.md`)
 
 ---
 
@@ -31,6 +31,8 @@ The following features are complete and deployed:
 - "Clear All Schedules" nuclear option (superuser only)
 - Instructions/help page
 - Responsive Bootstrap 5 layout (functional, not yet design-polished)
+- Containerized production deployment (Docker image via GHCR + CI, compose, nightly
+  SQLite backups via systemd timer, documented deploy/rollback runbook)
 
 ---
 
@@ -239,8 +241,10 @@ below — both are still functionally complete, just no longer shipped as files 
 - No breaking changes to the database schema without a migration entry in `flask db-migrate`
 - No changes to `CLAUDE.md` or project config files without explicit user approval
 - The scheduler must remain deterministic given the same seed inputs
-- The server runs Python 3.8 — no f-string `=` debug syntax, no walrus operator,
-  no 3.10+ match statements
+- ~~The server runs Python 3.8 — no f-string `=` debug syntax, no walrus operator,
+  no 3.10+ match statements~~ **Retired 2026-10-06:** production now runs Python 3.14
+  in the container. Remaining 3.8-era artifacts (the `pytest==8.3.5` pin rationale in
+  `requirements-dev.txt`) can be cleaned up at leisure.
 - All exports (Excel, CSV) and all schedule views are public — no login required
 
 ---
@@ -270,6 +274,10 @@ below — both are still functionally complete, just no longer shipped as files 
 | 2026-08-26 | Test suite expanded to 110 tests (exports, regeneration, blackouts, admin guards, CLI, CSRF) | Back-end agent |
 | 2026-08-26 | Fixed identity-map collision in `season_regenerate_partial` (SQLite rowid recycling colliding with stale identity-map entries for deleted tail Match/Bye rows); added a targeted `SAWarning`-as-error regression guard in `pytest.ini` | Back-end agent |
 | 2026-08-26 | Three previously-silent exception handlers (`season_regenerate_partial`, `blackout_add`, `blackout_delete`) now log tracebacks via `current_app.logger.exception` | Back-end agent |
+| 2026-08-28 | Mobile PWA install affordance: "Install App" menu item (native prompt on Android/Chrome, instructions modal on iOS), hidden when already installed | Master (Claude) |
+| 2026-10-06 | Outage: droplet's Ubuntu 24.04 upgrade broke the Python 3.8 venv (502s); rebuilt venv on Python 3.12, site restored | Master (Claude) |
+| 2026-10-06 | M-03 complete: containerized deployment (Dockerfile, compose, GHCR CI, backup timer, deploy script, runbook); droplet cut over the same day with ~1 minute downtime | Full agent pipeline |
+| 2026-10-06 | Fixed first-boot `db.create_all()` race between gunicorn workers; regression test added (PR #1) | Back-end agent (spawned session) |
 
 ---
 
@@ -290,6 +298,23 @@ These are not application features — they are improvements to the development 
   - Originally shipped as `.claude/agents/uiux.md`; retired from this repo 2026-08-26
     (commit `2b96492`) alongside M-01, same reason.
 
+- [x] **M-03** — Containerized deployment. **COMPLETE (2026-10-06, commit eceb995; cutover same day)**
+  - Mirrors the discord-newsbot pattern: multi-stage python:3.14-slim Dockerfile
+    (gunicorn as fixed uid 10002, read-only root filesystem, HTTP healthcheck),
+    compose base + prod/dev overlays, GitHub Actions CI gating image publish to
+    GHCR on the 110-test suite, nightly backup timer (03:30 Pacific, timestamped
+    reason-labelled filenames, count-based retention), `scripts/deploy.sh` with
+    health wait and offline rollback by TAG, full runbook in `docs/deploy.md`.
+  - Ran the complete agent pipeline: architect plan → devops implementation →
+    docs runbook → qa review (1 high / 4 medium / 9 low, all but one deliberate
+    decline fixed) → parallel fix agents → cutover.
+  - Motivated by the 2026-10-06 outage: the droplet's Ubuntu 24.04 upgrade broke
+    the Python 3.8 venv. The container ends that failure class and retires the
+    Python 3.8 syntax floor.
+  - Venv rollback path (disabled `pool-league` unit, root `league.db`,
+    `DATABASE_URL` in `.env`) soaks until ~2026-10-20, then gets decommissioned
+    per `docs/deploy.md` §12.
+
 ---
 
 ## Notes
@@ -301,6 +326,12 @@ These are not application features — they are improvements to the development 
   while the partial-regeneration infrastructure is fresh.
 - **F-12 (tournament):** Explicitly deferred. No planning will occur until the project
   owner initiates a design session.
+- **M-03 (container) soak & follow-ups:** The venv rollback path stays on the droplet
+  until ~2026-10-20, then gets decommissioned per `docs/deploy.md` §12. Known follow-ups,
+  none urgent: gunicorn 22→23 bump (request-smuggling advisory), full dependency lock
+  file + Dependabot (copy the bot's), optional container hardening extras (cap_drop,
+  tmpfs size, mem/pids limits — consciously deferred at qa review), and a DO cloud
+  firewall (host UFW is inactive; the loopback-only port publish is the current guard).
 - **F-03 (PWA):** HTTPS already in place on the production server. Service workers
   require HTTPS and will silently skip registration on the local `flask run` dev server —
   this is expected behavior, not a bug.
